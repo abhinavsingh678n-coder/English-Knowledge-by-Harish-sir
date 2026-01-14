@@ -1,82 +1,68 @@
 import streamlit as st
-import datetime
 
-# Page Settings
-st.set_page_config(page_title="Selection Way Pro", layout="wide", page_icon="🎓")
+# 1. Page Configuration - Browser ke nishaan mitane ke liye
+st.set_page_config(
+    page_title="Selection Way",
+    page_icon="🎓",
+    layout="centered",
+    initial_sidebar_state="collapsed"
+)
 
-# Sidebar - Branding & Role
-st.sidebar.image("https://cdn-icons-png.flaticon.com/512/3413/3413535.png", width=100)
-st.sidebar.title("Selection Way")
-
-if 'logged_in' not in st.session_state:
-    st.session_state.logged_in = False
-
-# --- LOGIN PAGE ---
-if not st.session_state.logged_in:
-    st.title("🔐 Secure Classroom Login")
-    col1, col2 = st.columns(2)
+# 2. Professional App UI (CSS)
+st.markdown("""
+    <style>
+    /* Header, Footer aur Menu chhupane ke liye */
+    header {visibility: hidden;}
+    footer {visibility: hidden;}
+    #MainMenu {visibility: hidden;}
     
-    with col1:
-        role = st.selectbox("Aapka Role", ["Student", "Teacher"])
-        password = st.text_input("Security Password", type="password")
-        
-        if st.button("Secure Login"):
-            if password == "1234":
-                st.session_state.logged_in = True
-                st.session_state.role = role
-                st.rerun()
-            else:
-                st.error("Ghalat Password! Kripya sahi password dalein.")
+    /* App ka Background aur Font */
+    .stApp {
+        background-color: #f0f2f5;
+    }
     
-    with col2:
-        st.info("### Legal Disclaimer\nYe app 'Selection Way' educational services ke liye banaya gaya hai. Iska misuse karna mana hai.")
+    /* Professional Buttons */
+    .stButton>button {
+        width: 100%;
+        border-radius: 12px;
+        height: 3.5em;
+        background-color: #1a73e8;
+        color: white;
+        font-weight: bold;
+        font-size: 18px;
+        border: none;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    /* Cards Style */
+    .course-card {
+        background-color: white;
+        padding: 20px;
+        border-radius: 15px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        margin-bottom: 20px;
+        text-align: center;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-# --- DASHBOARD ---
-else:
-    st.sidebar.success(f"Log-in as: {st.session_state.role}")
-    menu = st.sidebar.radio("Navigation", ["Classroom", "Attendance", "Study Material", "Homework/Test", "Settings"])
+# 3. App Body
+st.markdown("<h1 style='text-align: center; color: #1a73e8;'>Selection Way</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #5f6368;'>Education for Bright Future</p>", unsafe_allow_html=True)
 
-    if menu == "Classroom":
-        st.header("🔴 Live Teaching Hub")
-        st.markdown("---")
-        col_info, col_btn = st.columns([2, 1])
-        with col_info:
-            st.subheader("Today's Topic: English Grammar")
-            st.write("Teacher is ready. Please join the room for live discussion.")
-        with col_btn:
-            if st.button("JOIN LIVE CLASS NOW", use_container_width=True):
-                # Professional Jitsi Room
-                room_link = "https://meet.jit.si/SelectionWay_Pro_Class"
-                st.markdown(f'<meta http-equiv="refresh" content="0;URL={room_link}">', unsafe_allow_html=True)
+# Live Class Section
+st.markdown('<div class="course-card">', unsafe_allow_html=True)
+st.subheader("🔴 Live Classroom")
+st.write("Harish Sir is ready to teach. Click below to join.")
+if st.button("JOIN LIVE CLASS"):
+    # Bina kisi redirection ke video room mein bhejne ke liye
+    st.markdown(f'<meta http-equiv="refresh" content="0;URL=https://meet.jit.si/SelectionWay_Pro_Room">', unsafe_allow_html=True)
+st.markdown('</div>', unsafe_allow_html=True)
 
-    elif menu == "Attendance":
-        st.header("📅 Attendance Record")
-        today = datetime.date.today()
-        st.write(f"Aaj ki Date: {today}")
-        if st.button("Mark My Attendance"):
-            st.balloons()
-            st.success("Aapki attendance record ho gayi hai!")
-
-    elif menu == "Study Material":
-        st.header("📑 Library & Notes")
-        tab1, tab2 = st.tabs(["PDF Notes", "Video Lectures"])
-        with tab1:
-            st.button("Download: Chapter 1.pdf")
-            st.button("Download: Syllabus.pdf")
-        with tab2:
-            st.video("https://www.youtube.com/watch?v=dQw4w9WgXcQ") # Yahan apna video link dalein
-
-    elif menu == "Homework/Test":
-        st.header("📝 Homework & Assignments")
-        if st.session_state.role == "Teacher":
-            st.text_area("Write Homework for Students")
-            st.file_uploader("Upload Assignment Paper")
-            st.button("Assign to Class")
-        else:
-            st.warning("No pending homework for today.")
-
-    elif menu == "Settings":
-        st.header("⚙️ App Settings")
-        if st.button("Logout"):
-            st.session_state.logged_in = False
-            st.rerun()
+# Study Material Section
+st.markdown('<div class="course-card">', unsafe_allow_html=True)
+st.subheader("📚 Free Study Material")
+st.write("Download daily notes and practice sets.")
+if st.button("Access Notes"):
+    st.info("Notes Section Coming Soon!")
+st.markdown('</div>', unsafe_allow_html=True)
