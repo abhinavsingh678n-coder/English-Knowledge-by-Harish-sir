@@ -32,36 +32,33 @@ if st.session_state.role == "Admin":
     tab1, tab2, tab3 = st.tabs(["🚀 Classes", "📤 Homework", "❓ Doubt Panel"])
     
     with tab1:
-        st.subheader("Add Live/Recorded Class")
-        with st.form("class_form", clear_on_submit=True):
-            v_title = st.text_input("Topic Name")
-            v_link = st.text_input("YouTube Link")
-            if st.form_submit_button("Add to App"):
-                if v_title and v_link:
-                    st.session_state.recorded_classes.insert(0, {"title": v_title, "link": v_link})
-                    st.success("Class add ho gayi!")
+        st.subheader("Add Class Link")
+        v_title = st.text_input("Topic Name")
+        v_link = st.text_input("YouTube Link")
+        if st.button("Add to App"):
+            if v_title and v_link:
+                st.session_state.recorded_classes.insert(0, {"title": v_title, "link": v_link})
+                st.success("Class add ho gayi!")
 
     with tab2:
         st.subheader("Upload Notes")
-        with st.form("hw_form", clear_on_submit=True):
-            h_title = st.text_input("Notes Title")
-            h_file = st.file_uploader("Select PDF/Image")
-            if st.form_submit_button("Upload Now"):
-                if h_title and h_file:
-                    st.session_state.homework_list.insert(0, {"title": h_title, "file": h_file})
-                    st.success("Notes upload ho gaye!")
+        h_title = st.text_input("Notes Title")
+        h_file = st.file_uploader("Select PDF/Image")
+        if st.button("Upload Now"):
+            if h_title and h_file:
+                st.session_state.homework_list.insert(0, {"title": h_title, "file": h_file})
+                st.success("Notes upload ho gaye!")
 
     with tab3:
-        st.subheader("💬 Bachon ke Doubts (With ID)")
+        st.subheader("💬 Bachon ke Sawal")
         if not st.session_state.doubts:
             st.info("Abhi koi doubt nahi aaya hai.")
         else:
             for i, d in enumerate(st.session_state.doubts):
-                with st.container():
-                    st.write(f"**From:** {d['user']} (ID: {d['id']})")
+                with st.expander(f"From: {d['user']} (ID: {d['id']})"):
                     st.write(f"**Q:** {d['question']}")
                     if d['answer']:
-                        st.info(f"✅ Your Answer: {d['answer']}")
+                        st.success(f"✅ Your Answer: {d['answer']}")
                     else:
                         reply = st.text_area("Answer Likhein", key=f"ans_{i}")
                         if st.button("Reply", key=f"btn_{i}"):
@@ -77,8 +74,6 @@ else:
     elif menu == "🔴 Join Live Class":
         st.subheader("🔴 Live Classroom")
         st.info("Sir Live aayenge toh yahan video dikhegi.")
-        # Dummy live stream viewer
-        st.write("Checking for Live Stream...")
 
     elif menu == "🎥 Recorded Classes":
         st.subheader("🎥 All Classes")
@@ -93,6 +88,7 @@ else:
 
     elif menu == "❓ Ask Doubt":
         st.header("❓ Puchein Apna Sawal")
+        # 1. Sawal puchne ka form
         with st.form("s_doubt", clear_on_submit=True):
             name = st.text_input("Apna Naam")
             s_id = st.text_input("Apna Mobile (ID)")
@@ -100,4 +96,20 @@ else:
             if st.form_submit_button("Sir ko Bhejein"):
                 if name and s_id and q:
                     st.session_state.doubts.append({"user": name, "id": s_id, "question": q, "answer": None})
-                    st.success("Sawal bhej diya gaya!")
+                    st.success("Sawal bhej diya gaya! Niche 'Refresh' karein jawab dekhne ke liye.")
+        
+        st.divider()
+        # 2. Jawab dekhne ka section (Student View)
+        st.subheader("📝 Mere Sawal aur Sir ke Jawab")
+        if not st.session_state.doubts:
+            st.write("Aapne abhi tak koi sawal nahi pucha hai.")
+        else:
+            for d in reversed(st.session_state.doubts):
+                # Har bache ko sirf apna naam wala doubt dikhega agar wo apna naam sahi dalta hai
+                with st.container():
+                    st.write(f"❓ **Sawal:** {d['question']}")
+                    if d['answer']:
+                        st.info(f"👨‍🏫 **Sir ka Jawab:** {d['answer']}")
+                    else:
+                        st.warning("⏳ Sir jaldi hi jawab denge...")
+                    st.write("---")
