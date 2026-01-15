@@ -1,128 +1,118 @@
 import streamlit as st
 
-# 1. Page Config (Mobile friendly)
-st.set_page_config(page_title="English Knowledge by Harish Sir", layout="wide", page_icon="🎓")
+# 1. Page Config
+st.set_page_config(page_title="English Knowledge - Free Batch", layout="wide", page_icon="📖")
 
-# 2. PW Style CSS for Dashboard
+# 2. Custom CSS for PW Blue Theme & Professional Look
 st.markdown("""
     <style>
-    .main { background-color: #f4f7f6; }
+    .main { background-color: #f0f4f8; }
     header {visibility: hidden;}
     
-    /* Top Banner / Hero Section */
-    .hero-section {
-        background: linear-gradient(90deg, #1a2a6c, #b21f1f, #fdbb2d);
-        padding: 40px;
+    /* Profile Section */
+    .profile-box {
+        background-color: white;
+        padding: 15px;
+        border-radius: 12px;
+        border: 1px solid #dee2e6;
+        margin-bottom: 20px;
+    }
+    
+    /* Batch Card Styling */
+    .free-batch-card {
+        background: white;
         border-radius: 15px;
-        color: white;
-        text-align: center;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        overflow: hidden;
+        border: 1px solid #e0e0e0;
         margin-bottom: 25px;
     }
-    
-    /* Batch Card (PW Style) */
-    .batch-card {
-        background-color: white;
-        padding: 0px;
-        border-radius: 15px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        overflow: hidden;
-        margin-bottom: 20px;
-        border: 1px solid #eee;
-    }
-    .batch-image {
-        width: 100%;
-        height: 150px;
-        background-color: #008080;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+    .batch-header {
+        background: linear-gradient(135deg, #0052D4, #4364F7, #6FB1FC);
         color: white;
-        font-size: 24px;
+        padding: 20px;
+        text-align: center;
         font-weight: bold;
     }
-    .batch-details { padding: 15px; }
-    
-    /* Bottom Navigation for Mobile Look */
-    .stButton>button {
-        border-radius: 8px;
-        font-weight: 600;
+    .batch-tag {
+        background-color: #e8f5e9;
+        color: #2e7d32;
+        padding: 2px 8px;
+        border-radius: 5px;
+        font-size: 12px;
+        font-weight: bold;
     }
     </style>
     """, unsafe_allow_html=True)
 
-# --- SIDEBAR (Navigation) ---
-with st.sidebar:
-    st.markdown("<h2 style='text-align: center;'>🎓 Selection Way</h2>", unsafe_allow_html=True)
-    st.write("---")
-    menu = st.radio("Go to", ["🏠 Home", "📚 My Batches", "🔴 Live Classes", "📖 Free Resources", "👨‍🏫 Teacher Panel"])
-    st.write("---")
-    st.info("Study hard, Abhinav!")
+# --- Initializing Session State ---
+if 'user_name' not in st.session_state: st.session_state.user_name = "Abhinav" # Default for testing
 
-# --- HOME PAGE ---
-if menu == "🏠 Home":
-    st.markdown("""
-        <div class="hero-section">
-            <h1>English Knowledge by Harish Sir</h1>
-            <p>Ab Selection Hoga Pakka! 🚀</p>
-        </div>
-    """, unsafe_allow_html=True)
+# --- SIDEBAR NAVIGATION ---
+with st.sidebar:
+    st.markdown(f"### 👋 Hello, {st.session_state.user_name}")
+    st.write("Student ID: #EK2026")
+    st.write("---")
+    menu = st.radio("Navigation", ["🏠 Dashboard", "📂 My Free Batches", "🎥 Live Library", "📑 Homework/Notes", "👨‍🏫 Admin"])
+    st.write("---")
+    st.success("App for Harish Sir's Students")
+
+# --- DASHBOARD ---
+if menu == "🏠 Dashboard":
+    st.markdown("<h2 style='color: #1a73e8;'>My Learning Dashboard</h2>", unsafe_allow_html=True)
     
-    st.subheader("🔥 Popular Batches")
+    # Hero Banner
+    st.image("https://img.freepik.com/free-vector/students-watching-webinar-computer-screen-online-education-concept_74855-10584.jpg", use_container_width=True)
+    
     col1, col2 = st.columns(2)
-    
     with col1:
         st.markdown("""
-            <div class="batch-card">
-                <div class="batch-image">SSC English 2026</div>
-                <div class="batch-details">
-                    <h4>Target SSC CGL/CHSL</h4>
-                    <p>Complete Grammar + Vocab</p>
-                    <p style='color: green;'><b>Enroll Now</b></p>
+            <div class="free-batch-card">
+                <div class="batch-header">UP Board Special (English)</div>
+                <div style="padding: 15px;">
+                    <span class="batch-tag">FREE BATCH</span>
+                    <h4>Class 10th & 12th</h4>
+                    <p>Complete Grammar Coverage</p>
                 </div>
             </div>
         """, unsafe_allow_html=True)
-        if st.button("Explore Batch", key="b1"): pass
-        
+        if st.button("Start Learning Now", key="btn1"):
+            st.info("Directing to Class 10th-12th Section...")
+
     with col2:
         st.markdown("""
-            <div class="batch-card">
-                <div class="batch-image" style='background-color: #1a2a6c;'>Spoken English Pro</div>
-                <div class="batch-details">
-                    <h4>Zero to Hero Spoken</h4>
-                    <p>Daily Live Practice Sessions</p>
-                    <p style='color: green;'><b>Enroll Now</b></p>
+            <div class="free-batch-card">
+                <div class="batch-header" style="background: linear-gradient(135deg, #FF512F, #DD2476);">Spoken English Master</div>
+                <div style="padding: 15px;">
+                    <span class="batch-tag">FREE BATCH</span>
+                    <h4>Speaking & Vocabulary</h4>
+                    <p>Learn to speak in 60 Days</p>
                 </div>
             </div>
         """, unsafe_allow_html=True)
-        if st.button("Explore Batch", key="b2"): pass
+        if st.button("Join Spoken Class", key="btn2"):
+            st.info("Directing to Spoken Section...")
 
-# --- MY BATCHES (Proper Class View) ---
-elif menu == "📚 My Batches":
-    st.title("My Enrolled Batches")
-    tab1, tab2, tab3 = st.tabs(["Lecures", "Notes", "Test Series"])
+# --- MY BATCHES (Classroom View) ---
+elif menu == "📂 My Free Batches":
+    st.title("📚 Classroom")
+    tab1, tab2 = st.tabs(["📺 Lectures", "📖 Study Material"])
     
     with tab1:
-        st.write("### Today's Lectures")
-        st.video("https://www.youtube.com/watch?v=dQw4w9WgXcQ") # Dummy link
-        st.markdown("---")
-        st.write("### Previous Lectures")
-        st.button("Lesson 1: Introduction to Tenses")
-        st.button("Lesson 2: Present Indefinite")
-
+        st.subheader("Latest Video Classes")
+        # Harish sir yahan apne YouTube video ka link dal sakte hain
+        st.video("https://www.youtube.com/watch?v=Xp0N1f8w6bU") # Example video
+        st.markdown("**Topic:** Introduction to Passive Voice")
+        
     with tab2:
-        st.write("### Download PDF Notes")
-        st.download_button("Download Tense Chart", "PDF Data", "tenses.pdf")
+        st.subheader("Handwritten Notes")
+        st.info("Harish Sir's special PDF notes will appear here.")
+        st.button("📄 Download Tenses Chart (PDF)")
 
-# --- LIVE CLASSES ---
-elif menu == "🔴 Live Classes":
-    st.title("Ongoing Live Classes")
-    st.error("No Live Class at this moment. Next class at 8:00 PM.")
-    if st.button("Enter Live Room"):
-        st.markdown(f'<meta http-equiv="refresh" content="0;URL=https://meet.jit.si/EnglishKnowledge_Harish">', unsafe_allow_html=True)
-
-# --- TEACHER PANEL ---
-elif menu == "👨‍🏫 Teacher Panel":
-    pwd = st.text_input("Admin Password", type="password")
+# --- ADMIN PANEL ---
+elif menu == "👨‍🏫 Admin":
+    st.subheader("Harish Sir's Login")
+    pwd = st.text_input("Security Key", type="password")
     if pwd == "harish_sir_pro":
-        st.success("Welcome Harish Sir!")
-        # Sir yahan se video link aur PDF upload kar sakte hain
+        st.success("Access Granted!")
+        st.write("Yahan se aap naye videos aur PDF bacho ke liye free mein add kar sakte hain.")
