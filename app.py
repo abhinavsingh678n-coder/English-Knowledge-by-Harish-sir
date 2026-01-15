@@ -8,6 +8,15 @@ if 'homework_list' not in st.session_state: st.session_state.homework_list = []
 if 'recorded_classes' not in st.session_state: st.session_state.recorded_classes = []
 if 'doubts' not in st.session_state: st.session_state.doubts = []
 if 'role' not in st.session_state: st.session_state.role = "Student"
+if 'logged_in' not in st.session_state: st.session_state.logged_in = False
+
+# --- CUSTOM CSS ---
+st.markdown("""
+    <style>
+    .stButton>button { width: 100%; border-radius: 8px; font-weight: bold; }
+    .error-text { color: red; font-weight: bold; }
+    </style>
+    """, unsafe_allow_html=True)
 
 # --- SIDEBAR BRANDING ---
 with st.sidebar:
@@ -15,7 +24,12 @@ with st.sidebar:
     st.markdown("<p style='text-align: center;'>By Harish Sir</p>", unsafe_allow_html=True)
     st.divider()
     
-    menu = st.radio("Student Menu", ["🏠 Dashboard", "🔴 Join Live Class", "🎥 Recorded Classes", "📂 My Notes", "❓ Ask Doubt"])
+    if st.session_state.logged_in or st.session_state.role == "Admin":
+        menu = st.radio("Student Menu", ["🏠 Dashboard", "🔴 Join Live Class", "🎥 Recorded Classes", "📂 My Notes", "❓ Ask Doubt"])
+        if st.button("Logout"):
+            st.session_state.logged_in = False
+            st.session_state.role = "Student"
+            st.rerun()
     
     st.write("---")
     with st.expander("👨‍🏫 Staff Login"):
@@ -23,93 +37,80 @@ with st.sidebar:
         if admin_pwd == "harish_sir_pro":
             st.session_state.role = "Admin"
             st.success("Admin Mode Active!")
-        else:
-            st.session_state.role = "Student"
+
+# --- LOGIN LOGIC (Mobile Number Check) ---
+if not st.session_state.logged_in and st.session_state.role != "Admin":
+    st.title("🎓 English Knowledge Login")
+    with st.form("login_form"):
+        u_name = st.text_input("Apna Naam")
+        u_mobile = st.text_input("Mobile Number (10 Digits)")
+        if st.form_submit_button("Enter Classroom"):
+            if u_name and u_mobile.isdigit() and len(u_mobile) == 10:
+                st.session_state.logged_in = True
+                st.session_state.user_name = u_name
+                st.session_state.user_id = u_mobile
+                st.rerun()
+            else:
+                st.error("❌ Galat Number! Kripya 10 digits ka sahi mobile number dalein.")
 
 # --- ADMIN PANEL LOGIC ---
-if st.session_state.role == "Admin":
+elif st.session_state.role == "Admin":
     st.header("👨‍🏫 Harish Sir's Control Center")
     tab1, tab2, tab3 = st.tabs(["🚀 Classes", "📤 Homework", "❓ Doubt Panel"])
     
     with tab1:
-        st.subheader("Add Class Link")
         v_title = st.text_input("Topic Name")
         v_link = st.text_input("YouTube Link")
-        if st.button("Add to App"):
+        if st.button("Add Class"):
             if v_title and v_link:
                 st.session_state.recorded_classes.insert(0, {"title": v_title, "link": v_link})
                 st.success("Class add ho gayi!")
 
     with tab2:
-        st.subheader("Upload Notes")
         h_title = st.text_input("Notes Title")
-        h_file = st.file_uploader("Select PDF/Image")
-        if st.button("Upload Now"):
+        h_file = st.file_uploader("Select File")
+        if st.button("Upload"):
             if h_title and h_file:
                 st.session_state.homework_list.insert(0, {"title": h_title, "file": h_file})
                 st.success("Notes upload ho gaye!")
 
     with tab3:
         st.subheader("💬 Bachon ke Sawal")
-        if not st.session_state.doubts:
-            st.info("Abhi koi doubt nahi aaya hai.")
-        else:
-            for i, d in enumerate(st.session_state.doubts):
-                with st.expander(f"From: {d['user']} (ID: {d['id']})"):
-                    st.write(f"**Q:** {d['question']}")
-                    if d['answer']:
-                        st.success(f"✅ Your Answer: {d['answer']}")
-                    else:
-                        reply = st.text_area("Answer Likhein", key=f"ans_{i}")
-                        if st.button("Reply", key=f"btn_{i}"):
-                            st.session_state.doubts[i]['answer'] = reply
-                            st.rerun()
+        for i, d in enumerate(st.session_state.doubts):
+            with st.expander(f"From: {d['user']} (ID: {d['id']})"):
+                st.write(f"**Q:** {d['question']}")
+                if d['answer']: st.info(f"Answer: {d['answer']}")
+                else:
+                    ans = st.text_area("Reply", key=f"ans_{i}")
+                    if st.button("Send", key=f"btn_{i}"):
+                        st.session_state.doubts[i]['answer'] = ans
+                        st.rerun()
 
 # --- STUDENT PAGES ---
 else:
     if menu == "🏠 Dashboard":
-        st.title("English Knowledge by Harish Sir")
+        st.title(f"Welcome, {st.session_state.user_name}!")
         st.image("https://img.freepik.com/free-vector/online-education-concept_52683-37453.jpg", use_container_width=True)
-
-    elif menu == "🔴 Join Live Class":
-        st.subheader("🔴 Live Classroom")
-        st.info("Sir Live aayenge toh yahan video dikhegi.")
-
-    elif menu == "🎥 Recorded Classes":
-        st.subheader("🎥 All Classes")
-        for vid in st.session_state.recorded_classes:
-            with st.expander(f"▶️ {vid['title']}"):
-                st.video(vid['link'])
-
-    elif menu == "📂 My Notes":
-        st.subheader("📚 Study Material")
-        for item in st.session_state.homework_list:
-            st.download_button(f"Download {item['title']}", data=item['file'])
 
     elif menu == "❓ Ask Doubt":
         st.header("❓ Puchein Apna Sawal")
-        # 1. Sawal puchne ka form
         with st.form("s_doubt", clear_on_submit=True):
-            name = st.text_input("Apna Naam")
-            s_id = st.text_input("Apna Mobile (ID)")
             q = st.text_area("Sawal Likhein")
             if st.form_submit_button("Sir ko Bhejein"):
-                if name and s_id and q:
-                    st.session_state.doubts.append({"user": name, "id": s_id, "question": q, "answer": None})
-                    st.success("Sawal bhej diya gaya! Niche 'Refresh' karein jawab dekhne ke liye.")
+                # Double Check: Only if ID is valid (which is already checked at login)
+                if q:
+                    st.session_state.doubts.append({
+                        "user": st.session_state.user_name, 
+                        "id": st.session_state.user_id, 
+                        "question": q, 
+                        "answer": None
+                    })
+                    st.success("Doubt bhej diya gaya!")
         
         st.divider()
-        # 2. Jawab dekhne ka section (Student View)
-        st.subheader("📝 Mere Sawal aur Sir ke Jawab")
-        if not st.session_state.doubts:
-            st.write("Aapne abhi tak koi sawal nahi pucha hai.")
-        else:
-            for d in reversed(st.session_state.doubts):
-                # Har bache ko sirf apna naam wala doubt dikhega agar wo apna naam sahi dalta hai
-                with st.container():
-                    st.write(f"❓ **Sawal:** {d['question']}")
-                    if d['answer']:
-                        st.info(f"👨‍🏫 **Sir ka Jawab:** {d['answer']}")
-                    else:
-                        st.warning("⏳ Sir jaldi hi jawab denge...")
-                    st.write("---")
+        for d in reversed(st.session_state.doubts):
+            if d['id'] == st.session_state.user_id:
+                st.write(f"❓ **Q:** {d['question']}")
+                if d['answer']: st.info(f"✅ **Ans:** {d['answer']}")
+                else: st.warning("⏳ Pending...")
+                st.write("---")
