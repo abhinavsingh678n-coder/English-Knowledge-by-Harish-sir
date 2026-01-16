@@ -2,29 +2,30 @@ import streamlit as st
 from streamlit_webrtc import webrtc_streamer, WebRtcMode
 import time
 
-# 1. PAGE CONFIGURATION
+# 1. PAGE SETTINGS
 st.set_page_config(page_title="English Knowledge by Harish Sir", layout="wide", page_icon="🎓")
 
 # Data Storage Initialization
 if 'homework_list' not in st.session_state: st.session_state.homework_list = []
 if 'recorded_classes' not in st.session_state: st.session_state.recorded_classes = []
 if 'doubts' not in st.session_state: st.session_state.doubts = []
+if 'call_active' not in st.session_state: st.session_state.call_active = False # Sir's Video Call Toggle
 if 'active_poll' not in st.session_state: st.session_state.active_poll = None
 if 'poll_results' not in st.session_state: st.session_state.poll_results = {}
 if 'role' not in st.session_state: st.session_state.role = "Student"
 if 'logged_in' not in st.session_state: st.session_state.logged_in = False
 
-# --- LOGIN SYSTEM (10-Digit Check) ---
+# --- LOGIN SYSTEM (Strict 10-Digit Mobile Check) ---
 if not st.session_state.logged_in and st.session_state.role != "Admin":
     st.title("🎓 English Knowledge Login")
-    with st.expander("👨‍🏫 Harish Sir Login"):
-        admin_pwd = st.text_input("Security Key", type="password")
+    with st.expander("👨‍🏫 Staff Access (Harish Sir)"):
+        admin_key = st.text_input("Security Key", type="password")
         if st.button("Admin Login"):
-            if admin_pwd == "harish_sir_pro":
+            if admin_key == "harish_sir_pro":
                 st.session_state.role = "Admin"
                 st.rerun()
 
-    st.subheader("Student Login")
+    st.subheader("Student Entry")
     u_name = st.text_input("Apna Naam")
     u_mobile = st.text_input("Mobile Number (10 Digits)")
     if st.button("Enter Classroom"):
@@ -35,13 +36,13 @@ if not st.session_state.logged_in and st.session_state.role != "Admin":
             st.session_state.user_id = clean_num
             st.rerun()
         else:
-            st.error("❌ Galat Entry! 10-digit number aur naam zaruri hai.")
+            st.error("❌ Galat Detail! 10-digit number dalein.")
     st.stop()
 
-# --- SIDEBAR ---
+# --- SIDEBAR BRANDING ---
 with st.sidebar:
-    st.markdown("## 📖 English Knowledge")
-    st.caption("By Harish Sir")
+    st.markdown("<h2 style='text-align: center;'>📖 English Knowledge</h2>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center;'>By Harish Sir</p>", unsafe_allow_html=True)
     st.divider()
     menu = st.radio("Menu", ["🏠 Dashboard", "🔴 Live Class", "🎥 Recorded Classes", "📂 My Notes", "❓ Ask Doubt"])
     if st.button("Logout"):
@@ -49,38 +50,64 @@ with st.sidebar:
         st.session_state.role = "Student"
         st.rerun()
 
-# --- ADMIN PANEL (Harish Sir) ---
+# --- ADMIN PANEL (Harish Sir's View) ---
 if st.session_state.role == "Admin":
-    st.title("👨‍🏫 Harish Sir's Control Panel")
-    t1, t2, t3, t4 = st.tabs(["🚀 Live Class", "📊 Poll System", "📤 Homework", "💬 Doubts"])
+    st.title("👨‍🏫 Harish Sir's Control Center")
+    t1, t2, t3, t4 = st.tabs(["🚀 Live Control", "📊 Poll", "📤 Homework", "💬 Doubts"])
     
     with t1:
-        st.subheader("Start Live Class")
-        topic = st.text_input("Class Topic Name")
-        # TEACHER: Mode is SENDRECV so he can see student if student joins call
-        webrtc_streamer(key="sir-stream", mode=WebRtcMode.SENDRECV, rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
+        st.subheader("1. Live Lecture Control")
+        topic = st.text_input("Today's Topic Name")
+        # TEACHER STREAM
+        webrtc_streamer(key="sir-live", mode=WebRtcMode.SENDRECV, 
+                        rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
         
         st.divider()
-        link = st.text_input("YouTube/Drive Link to Save Permanently")
-        if st.button("Save to Recorded Library"):
-            if topic and link:
-                st.session_state.recorded_classes.insert(0, {"title": topic, "link": link})
-                st.success("Library updated!")
+        st.subheader("2. Student Video Call Control")
+        if not st.session_state.call_active:
+            if st.button("📞 Start Video Call with Students"):
+                st.session_state.call_active = True
+                st.rerun()
+        else:
+            if st.button("🛑 End Video Call (Resume Lecture)"):
+                st.session_state.call_active = False
+                st.rerun()
+        
+        st.divider()
+        if st.button("🎬 End Full Class & Save"):
+            if topic:
+                st.session_state.recorded_classes.insert(0, {"title": topic, "link": "Class Ended Successfully"})
+                st.success("Class Record ho gayi!")
 
     with t2:
-        st.subheader("Create a New Poll")
+        st.subheader("Create Poll")
         with st.form("p_form"):
             pq = st.text_input("Question")
-            pa = st.text_input("Option A")
-            pb = st.text_input("Option B")
+            pa = st.text_input("Option A"); pb = st.text_input("Option B")
             if st.form_submit_button("Launch Poll"):
                 st.session_state.active_poll = {"q": pq, "a": pa, "b": pb}
                 st.session_state.poll_results = {pa: 0, pb: 0}
                 st.success("Poll Live!")
+        if st.session_state.active_poll:
+            st.bar_chart(st.session_state.poll_results)
+            if st.button("Clear Poll"): st.session_state.active_poll = None; st.rerun()
 
-    # ... (Homework and Doubts sections remain same)
+    with t3:
+        h_t = st.text_input("Notes Title"); h_f = st.file_uploader("Upload")
+        if st.button("Send Notes"):
+            if h_t and h_f: st.session_state.homework_list.insert(0, {"title": h_t, "file": h_f}); st.success("Uploaded!")
 
-# --- STUDENT PANEL ---
+    with t4:
+        for i, d in enumerate(st.session_state.doubts):
+            with st.expander(f"From {d['user']} (ID: {d['id']})"):
+                st.write(f"Q: {d['question']}")
+                if d['answer']: st.info(f"Ans: {d['answer']}")
+                else:
+                    ans = st.text_area("Reply", key=f"ans_{i}")
+                    if st.button("Send", key=f"btn_{i}"):
+                        st.session_state.doubts[i]['answer'] = ans; st.rerun()
+
+# --- STUDENT PANEL (Bachon ka View) ---
 else:
     if menu == "🏠 Dashboard":
         st.title(f"Welcome, {st.session_state.user_name}!")
@@ -89,30 +116,25 @@ else:
             st.write(f"**Q: {st.session_state.active_poll['q']}**")
             vote = st.radio("Choose One", [st.session_state.active_poll['a'], st.session_state.active_poll['b']])
             if st.button("Submit Vote"):
-                st.session_state.poll_results[vote] += 1
-                st.success("Voted!")
+                st.session_state.poll_results[vote] += 1; st.success("Voted!")
         else:
             st.image("https://img.freepik.com/free-vector/online-education-concept_52683-37453.jpg", use_container_width=True)
 
     elif menu == "🔴 Live Class":
         st.subheader("🔴 English Live Classroom")
-        
-        # FEATURE: Student can ONLY view by default. No camera access unless they check the box.
-        st.write("Sir ki class niche dikhegi:")
-        
-        interact_call = st.checkbox("Ask a question on Video Call (Sir ke kehne par on karein)")
-        
-        if interact_call:
-            # Mode SENDRECV opens student's camera for interaction
-            webrtc_streamer(key="stu-interaction", mode=WebRtcMode.SENDRECV, rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
+        # LOGIC: Sir's Call Active? Then Student Cam Opens, else View Only
+        if st.session_state.call_active:
+            st.warning("⚠️ Sir is calling you! Camera/Mic is now ON.")
+            webrtc_streamer(key="stu-call", mode=WebRtcMode.SENDRECV,
+                            rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
         else:
-            # Mode RECVONLY ONLY shows teacher's stream. Student's camera is NOT accessed.
-            webrtc_streamer(key="stu-view-only", mode=WebRtcMode.RECVONLY, rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
+            st.info("📺 Sir is teaching. (Your Cam/Mic is OFF)")
+            webrtc_streamer(key="stu-view", mode=WebRtcMode.RECVONLY,
+                            rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
 
     elif menu == "🎥 Recorded Classes":
         for vid in st.session_state.recorded_classes:
-            with st.expander(f"▶️ {vid['title']}"):
-                st.video(vid['link'])
+            st.warning(f"📺 {vid['title']} - Class Finished")
 
     elif menu == "📂 My Notes":
         for item in st.session_state.homework_list:
@@ -122,9 +144,7 @@ else:
         with st.form("d_form"):
             q = st.text_area("Sawal Likhein")
             if st.form_submit_button("Bhejein"):
-                if q:
-                    st.session_state.doubts.append({"user": st.session_state.user_name, "id": st.session_state.user_id, "question": q, "answer": None})
-                    st.success("Sent!")
+                if q: st.session_state.doubts.append({"user": st.session_state.user_name, "id": st.session_state.user_id, "question": q, "answer": None}); st.success("Sent!")
         for d in reversed(st.session_state.doubts):
             if d['id'] == st.session_state.user_id:
                 st.write(f"❓ {d['question']}")
