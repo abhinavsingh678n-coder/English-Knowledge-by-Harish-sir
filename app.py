@@ -4,13 +4,14 @@ from streamlit_webrtc import webrtc_streamer, WebRtcMode
 # 1. PAGE SETTINGS
 st.set_page_config(page_title="English Knowledge by Harish Sir", layout="wide", page_icon="🎓")
 
+# Global Variable Simulation (Bacho aur Sir ko sync karne ke liye)
+if 'is_live' not in st.session_state: st.session_state.is_live = False 
+if 'call_active' not in st.session_state: st.session_state.call_active = False 
+
 # Data Storage Initialization
 if 'homework_list' not in st.session_state: st.session_state.homework_list = []
 if 'recorded_classes' not in st.session_state: st.session_state.recorded_classes = []
 if 'doubts' not in st.session_state: st.session_state.doubts = []
-if 'is_live' not in st.session_state: st.session_state.is_live = False 
-if 'call_active' not in st.session_state: st.session_state.call_active = False 
-if 'active_poll' not in st.session_state: st.session_state.active_poll = None
 if 'role' not in st.session_state: st.session_state.role = "Student"
 if 'logged_in' not in st.session_state: st.session_state.logged_in = False
 
@@ -33,8 +34,6 @@ if not st.session_state.logged_in and st.session_state.role != "Admin":
             st.session_state.user_name = u_name
             st.session_state.user_id = u_mobile.strip()
             st.rerun()
-        else:
-            st.error("❌ Sahi 10-digit number dalein.")
     st.stop()
 
 # --- SIDEBAR ---
@@ -48,89 +47,72 @@ with st.sidebar:
         st.session_state.role = "Student"
         st.rerun()
 
-# --- ADMIN PANEL (Teacher) ---
+# --- ADMIN PANEL (Harish Sir) ---
 if st.session_state.role == "Admin":
     st.header("👨‍🏫 Master Control Panel")
     t1, t2, t3 = st.tabs(["🚀 LIVE CLASS", "📊 POLLS", "📤 CONTENT"])
     
     with t1:
-        if not st.session_state.is_live:
-            if st.button("🔴 START LIVE CLASS"):
-                st.session_state.is_live = True
-                st.rerun()
-        else:
+        # Sir ka Live Status Control
+        live_status = st.toggle("🔴 START / STOP LIVE CLASS", value=st.session_state.is_live)
+        st.session_state.is_live = live_status
+        
+        if st.session_state.is_live:
             st.success("✅ Aap Live Hain! Bache ab jud sakte hain.")
-            webrtc_streamer(key="teacher-live", mode=WebRtcMode.SENDRECV, 
+            webrtc_streamer(key="sir-live-v3", mode=WebRtcMode.SENDRECV, 
                             rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
+            
             st.divider()
-            if not st.session_state.call_active:
-                if st.button("📞 Start Interaction (Video Call)"):
-                    st.session_state.call_active = True
-                    st.rerun()
-            else:
-                if st.button("🛑 Stop Interaction"):
-                    st.session_state.call_active = False
-                    st.rerun()
-            if st.button("🏁 END FULL CLASS"):
-                st.session_state.is_live = False
-                st.session_state.call_active = False
-                st.rerun()
+            call_status = st.toggle("📞 Start Interaction (Video Call)", value=st.session_state.call_active)
+            st.session_state.call_active = call_status
+        else:
+            st.info("Class band hai. Live jaane ke liye upar wala button dabayein.")
 
-    with t2:
-        poll_q = st.text_input("Poll Question")
-        if st.button("Launch"): st.session_state.active_poll = poll_q
-
-    with t3:
-        n_t = st.text_input("Notes Title"); n_f = st.file_uploader("PDF")
-        if st.button("Upload"):
-            if n_t and n_f: st.session_state.homework_list.insert(0, {"title": n_t, "file": n_f}); st.success("Uploaded!")
-
-# --- STUDENT PANEL (PW Style) ---
+# --- STUDENT PANEL (PW Style Logic) ---
 else:
-    # PW Logic: Agar Sir Live hain, toh Dashboard par sabse upar Join button aayega
+    # PW Style Notification Box
     if st.session_state.is_live:
         st.markdown("""
-            <style>
-            .live-box { background-color: #ff4b4b; color: white; padding: 20px; border-radius: 12px; text-align: center; font-weight: bold; margin-bottom: 20px; animation: blinker 1.5s linear infinite; }
-            @keyframes blinker { 50% { opacity: 0.6; } }
-            </style>
-            <div class="live-box">🔴 HARISH SIR IS LIVE NOW!</div>
+            <div style="background-color:#ff4b4b; color:white; padding:20px; border-radius:15px; text-align:center; font-weight:bold; margin-bottom:20px; border: 2px solid white;">
+                <h2 style="color:white; margin:0;">🔴 HARISH SIR IS LIVE NOW!</h2>
+                <p style="margin:5px 0 0 0;">Niche join button par click karein</p>
+            </div>
             """, unsafe_allow_html=True)
         
-        if st.button("▶️ JOIN LIVE CLASS NOW"):
-            st.session_state.show_live = True
-        
-        if st.session_state.get('show_live', False):
+        if st.button("▶️ JOIN LIVE CLASS NOW", use_container_width=True):
+            st.session_state.show_live_screen = True
+
+        if st.session_state.get('show_live_screen', False):
             if st.session_state.call_active:
-                st.warning("📞 Interaction Mode: Sir is talking to you!")
-                webrtc_streamer(key="stu-interaction-v2", mode=WebRtcMode.SENDRECV, 
+                st.warning("📞 Interaction Mode: Sir is talking to you face-to-face!")
+                webrtc_streamer(key="stu-interaction-v3", mode=WebRtcMode.SENDRECV, 
                                 rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
             else:
                 st.info("📺 Watching Harish Sir Live...")
-                webrtc_streamer(key="stu-view-v2", mode=WebRtcMode.RECVONLY, 
+                webrtc_streamer(key="stu-view-v3", mode=WebRtcMode.RECVONLY, 
                                 rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
+            
             if st.button("Leave Class"):
-                st.session_state.show_live = False
+                st.session_state.show_live_screen = False
                 st.rerun()
-        st.divider()
-
+    
     if menu == "🏠 Dashboard":
         st.title(f"Namaste, {st.session_state.user_name}")
         if not st.session_state.is_live:
-            st.info("Abhi koi Live class nahi chal rahi hai. Sir ke Live aate hi Join ka button aa jayega.")
-        if st.session_state.active_poll:
-            st.markdown(f"#### 📊 Poll: {st.session_state.active_poll}")
-            if st.button("Done"): st.success("Voted!")
+            st.info("Abhi koi Live class nahi chal rahi hai. Sir ke Live aate hi yahan Join ka button aa jayega.")
+        else:
+            st.success("Class chalu hai! Upar 'Join Live' par click karein.")
+        st.image("https://img.freepik.com/free-vector/online-education-concept_52683-37453.jpg", use_container_width=True)
 
     elif menu == "🎥 Recorded":
-        st.write("Lectures appear here.")
+        st.write("Purane lectures yahan dikhengi.")
 
     elif menu == "📚 Notes":
         for n in st.session_state.homework_list:
-            st.download_button(f"Download {n['title']}", data=n['file'])
+            st.download_button(f"📥 Download {n['title']}", data=n['file'])
 
     elif menu == "💬 Ask Doubts":
         dq = st.text_area("Type Doubt")
-        if st.button("Send"):
+        if st.button("Send Doubt"):
             st.session_state.doubts.append({"id": st.session_state.user_id, "q": dq})
             st.success("Sent to Sir!")
