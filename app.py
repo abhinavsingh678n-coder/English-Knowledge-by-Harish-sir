@@ -2,121 +2,140 @@ import streamlit as st
 from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration
 import os
 import pandas as pd
-from datetime import datetime
+import json
 
 # 1. PAGE SETUP
 st.set_page_config(page_title="English Knowledge by Harish Sir", layout="wide")
 
-# CSS for Photo-like Cards (As per your design)
-st.markdown("""
-    <style>
-    .card { background-color: #f8f9fa; padding: 20px; border-radius: 15px; border-left: 10px solid #ff4b4b; margin-bottom: 15px; box-shadow: 2px 2px 10px rgba(0,0,0,0.1); }
-    .sidebar-pay { background-color: #ffffff; padding: 15px; border-radius: 10px; border: 1px solid #ddd; text-align: center; }
-    </style>
-    """, unsafe_allow_html=True)
-
-# Data Files
-PAYMENT_FILE = "payments_list.csv"
+# Data Storage Files
+USER_DB = "user_database.json"
 QR_IMAGE_PATH = "harish_sir_qr.png"
+
+# Helper Functions
+def load_users():
+    if os.path.exists(USER_DB):
+        with open(USER_DB, "r") as f: return json.load(f)
+    return {}
+
+def save_user(mobile, password, name):
+    users = load_users()
+    users[mobile] = {"password": password, "name": name, "paid": False}
+    with open(USER_DB, "w") as f: json.dump(users, f)
 
 def update_db(key, val):
     with open(f"{key}.txt", "w") as f: f.write(val)
+
 def read_db(key):
     if not os.path.exists(f"{key}.txt"): return "OFF"
     with open(f"{key}.txt", "r") as f: return f.read().strip()
 
-if 'logged_in' not in st.session_state: st.session_state.logged_in = False
+# --- LOGIN & REGISTRATION LOGIC ---
+if 'logged_in' not in st.session_state:
+    st.session_state.logged_in = False
 
-# --- LOGIN ---
 if not st.session_state.logged_in:
-    st.sidebar.title("Streemanit Login")
-    u_n = st.sidebar.text_input("Naam:")
-    u_m = st.sidebar.text_input("Mobile (10 Digits):")
-    if st.sidebar.button("Login"):
-        if u_n and len(u_m) == 10:
-            st.session_state.logged_in = True; st.session_state.u_name = u_n; st.session_state.u_id = u_m; st.rerun()
-    with st.sidebar.expander("Admin Access"):
-        key = st.text_input("Security Key", type="password")
-        if st.button("Sir Login"):
-            if key == "harish_sir_pro":
-                st.session_state.role = "Admin"; st.session_state.logged_in = True; st.rerun()
+    st.title("🎓 English Knowledge - Harish Sir")
+    
+    choice = st.radio("Select Option", ["Login", "Register (Naye bacho ke liye)"])
+    users = load_users()
+
+    if choice == "Register (Naye bacho ke liye)":
+        name = st.text_input("Apna Naam")
+        reg_mobile = st.text_input("Mobile Number (10 Digits)")
+        reg_pass = st.text_input("Naya Password Set Karein", type="password")
+        
+        if st.button("Create Account"):
+            if len(reg_mobile) == 10 and reg_mobile.isdigit():
+                if reg_mobile in users:
+                    st.error("Ye number pehle se register hai. Login karein.")
+                elif len(reg_pass) < 4:
+                    st.error("Password kam se kam 4 aksharo ka rakhein.")
+                else:
+                    save_user(reg_mobile, reg_pass, name)
+                    st.success("Registration Successful! Ab Login tab par jayein.")
+            else:
+                st.error("Keval 10-digit ka Indian Mobile number dalein.")
+
+    else:
+        log_mobile = st.text_input("Mobile Number")
+        log_pass = st.text_input("Password", type="password")
+        
+        if st.button("Login Now"):
+            if log_mobile == "9999999999" and log_pass == "harish_sir_pro": # Master Admin Login
+                st.session_state.logged_in = True
+                st.session_state.role = "Admin"
+                st.session_state.u_name = "Harish Sir"
+                st.rerun()
+            elif log_mobile in users and users[log_mobile]["password"] == log_pass:
+                st.session_state.logged_in = True
+                st.session_state.u_id = log_mobile
+                st.session_state.u_name = users[log_mobile]["name"]
+                st.session_state.role = "Student"
+                st.rerun()
+            else:
+                st.error("Mobile Number ya Password galat hai.")
     st.stop()
 
-# --- SIDEBAR (Student View: QR & Payment) ---
+# --- APP INTERFACE ---
 with st.sidebar:
-    st.header(f"👤 {st.session_state.u_name if st.session_state.get('role') != 'Admin' else 'Harish Sir'}")
+    st.header(f"👤 {st.session_state.u_name}")
     
-    if st.session_state.get('role') != "Admin":
-        st.markdown('<div class="sidebar-pay">', unsafe_allow_html=True)
-        st.subheader("💳 Buy Course (₹499)")
+    if st.session_state.role == "Student":
+        users = load_users()
+        is_paid = users[st.session_state.u_id].get("paid", False)
         
-        # Display Sir's Uploaded QR
-        if os.path.exists(QR_IMAGE_PATH):
-            st.image(QR_IMAGE_PATH, caption="Scan this to pay Harish Sir")
-        else:
-            st.warning("QR Code not uploaded by Sir yet.")
-        
-        is_paid = os.path.exists(f"pay_{st.session_state.u_id}.txt")
         if is_paid:
-            st.success("✅ Access Approved!")
+            st.success("✅ PAID STUDENT")
         else:
-            st.error("❌ Access Locked")
-            if st.button("I have Paid (Notify Sir)"):
-                new_data = pd.DataFrame([[st.session_state.u_name, st.session_state.u_id, datetime.now().strftime("%Y-%m-%d %H:%M")]], columns=["Name", "Mobile", "Time"])
-                if os.path.exists(PAYMENT_FILE): new_data.to_csv(PAYMENT_FILE, mode='a', header=False, index=False)
-                else: new_data.to_csv(PAYMENT_FILE, index=False)
-                st.info("Sir notified! Please wait for approval.")
-        st.markdown('</div>', unsafe_allow_html=True)
+            st.error("❌ ACCESS LOCKED")
+            st.subheader("💳 Unlock Full Course")
+            if os.path.exists(QR_IMAGE_PATH):
+                st.image(QR_IMAGE_PATH, caption="Scan & Pay ₹499")
+            st.markdown(f"[Send Screenshot to Sir](https://wa.me/919999999999?text=Mera%20Number%20{st.session_state.u_id}%20hai)")
     
-    if st.button("Logout"): st.session_state.logged_in = False; st.rerun()
+    if st.button("Logout"):
+        st.session_state.logged_in = False
+        st.rerun()
 
-# --- MAIN INTERFACE ---
+# --- DASHBOARD ---
 live_state = read_db("live")
 
-if st.session_state.get('role') == "Admin":
-    st.title("👨‍🏫 Harish Sir's Management Panel")
+if st.session_state.role == "Admin":
+    st.title("👨‍🏫 Harish Sir Control Panel")
+    tab1, tab2 = st.columns(2)
     
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.subheader("📤 Upload Your Bar Code")
-        qr_file = st.file_uploader("Choose QR Code Image", type=['png', 'jpg', 'jpeg'])
+    with tab1:
+        st.subheader("🔴 Live Control")
+        if st.toggle("Start Class", value=(live_state == "ON")):
+            update_db("live", "ON")
+            webrtc_streamer(key="sir", mode=WebRtcMode.SENDRECV, rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
+        else: update_db("live", "OFF")
+        
+        st.subheader("📤 Upload QR Scanner")
+        qr_file = st.file_uploader("Upload Image", type=['png','jpg'])
         if qr_file:
             with open(QR_IMAGE_PATH, "wb") as f: f.write(qr_file.getbuffer())
-            st.success("QR Code updated for all students!")
-        st.markdown('</div>', unsafe_allow_html=True)
-        
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.subheader("🔴 Class Control")
-        if st.toggle("Go Live", value=(live_state == "ON")):
-            update_db("live", "ON")
-            webrtc_streamer(key="admin", mode=WebRtcMode.SENDRECV, rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
-        else: update_db("live", "OFF")
-        st.markdown('</div>', unsafe_allow_html=True)
+            st.success("QR Code Updated!")
 
-    with col2:
-        st.markdown('<div class="card">', unsafe_allow_html=True)
-        st.subheader("👥 Payment Approval List")
-        if os.path.exists(PAYMENT_FILE):
-            df = pd.read_csv(PAYMENT_FILE)
-            st.dataframe(df)
-            stu_to_approve = st.text_input("Enter Mobile Number to Approve")
-            if st.button("Grant Full Access"):
-                with open(f"pay_{stu_to_approve}.txt", "w") as f: f.write("PAID")
-                st.success(f"Access granted to {stu_id}")
-        else: st.info("No payment requests yet.")
-        st.markdown('</div>', unsafe_allow_html=True)
+    with tab2:
+        st.subheader("✅ Approve Students")
+        users = load_users()
+        m_to_pay = st.text_input("Enter Student Mobile")
+        if st.button("Activate Account"):
+            if m_to_pay in users:
+                users[m_to_pay]["paid"] = True
+                with open(USER_DB, "w") as f: json.dump(users, f)
+                st.success(f"{users[m_to_pay]['name']} is now Paid!")
+            else: st.error("User not found.")
 
 else:
-    st.title("English Knowledge Dashboard")
-    st.markdown('<div class="card">', unsafe_allow_html=True)
-    st.subheader("📺 Live Class Status")
+    st.title("Student Dashboard")
+    users = load_users()
+    is_paid = users[st.session_state.u_id].get("paid", False)
+    
     if live_state == "ON":
-        if os.path.exists(f"pay_{st.session_state.u_id}.txt"):
-            st.success("Sir is Live! Click below to join.")
-            webrtc_streamer(key="student", mode=WebRtcMode.RECVONLY, rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
-        else:
-            st.error("🔒 Locked: Please pay ₹499 and get Sir's approval to watch live.")
-    else: st.info("Sir is not live right now.")
-    st.markdown('</div>', unsafe_allow_html=True)
+        if is_paid:
+            st.success("Sir is Live! Watch Below.")
+            webrtc_streamer(key="stu", mode=WebRtcMode.RECVONLY, rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
+        else: st.error("🔒 Locked: Pehle pay karein aur Sir se permission lein.")
+    else: st.info("Class abhi band hai.")
