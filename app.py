@@ -1,84 +1,97 @@
- import streamlit as st
+import streamlit as st
+from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration
+import os
 
-# Admin Settings
-ADMIN_PASSWORD = "harish_sir_pro"
+# 1. PAGE SETTINGS & BRANDING
+st.set_page_config(page_title="English Knowledge by Harish Sir", layout="wide", page_icon="🎓")
 
-st.set_page_config(page_title="Selection Way Pro", layout="centered")
+# Branding Header
+st.markdown("<h1 style='text-align: center; color: #ff4b4b;'>📖 English Knowledge</h1>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: center;'>By: Harish Sir</h3>", unsafe_allow_html=True)
+st.write("---")
 
-# Professional UI CSS
-st.markdown("""
-    <style>
-    header {visibility: hidden;}
-    footer {visibility: hidden;}
-    .stButton>button { width: 100%; border-radius: 12px; height: 3.5em; background-color: #1a73e8; color: white; font-weight: bold;}
-    .login-box { padding: 30px; border-radius: 20px; background-color: white; box-shadow: 0 4px 20px rgba(0,0,0,0.1); text-align: center; }
-    </style>
-    """, unsafe_allow_html=True)
+# Video Sync Config (Global Fix)
+RTC_CONFIG = RTCConfiguration({"iceServers": [{"urls": ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"]}]})
 
-if 'login_state' not in st.session_state:
-    st.session_state.login_state = "selection"
-if 'user_name' not in st.session_state:
-    st.session_state.user_name = ""
+# Database Sync Logic
+def set_st(key, val):
+    with open(f"{key}.txt", "w") as f: f.write(val)
 
-# --- 1. SELECTION PAGE ---
-if st.session_state.login_state == "selection":
-    st.markdown("<h1 style='text-align: center;'>🎓 Selection Way</h1>", unsafe_allow_html=True)
-    st.write("Welcome! Please choose your role:")
-    if st.button("👨‍🏫 Teacher Login"):
-        st.session_state.login_state = "teacher_login"
-        st.rerun()
-    if st.button("👨‍🎓 Student Login"):
-        st.session_state.login_state = "student_login"
-        st.rerun()
+def get_st(key):
+    if not os.path.exists(f"{key}.txt"): return "OFF"
+    with open(f"{key}.txt", "r") as f: return f.read().strip()
 
-# --- 2. TEACHER LOGIN (Password Protected) ---
-elif st.session_state.login_state == "teacher_login":
-    st.subheader("Teacher Admin Access")
-    pwd = st.text_input("Admin Password Dalein", type="password")
-    if st.button("Login as Admin"):
-        if pwd == ADMIN_PASSWORD:
-            st.session_state.login_state = "teacher_dashboard"
-            st.rerun()
-        else:
-            st.error("Wrong Password!")
-    if st.button("🔙 Back"):
-        st.session_state.login_state = "selection"
-        st.rerun()
+if 'logged_in' not in st.session_state: st.session_state.logged_in = False
+if 'role' not in st.session_state: st.session_state.role = "Student"
 
-# --- 3. STUDENT LOGIN (Mobile Number System) ---
-elif st.session_state.login_state == "student_login":
-    st.markdown("<div class='login-box'>", unsafe_allow_html=True)
-    st.subheader("Student Login")
-    mobile = st.text_input("📞 Apna Mobile Number Dalein", placeholder="9876543210")
-    name = st.text_input("👤 Apna Naam Dalein", placeholder="Full Name")
+# --- LOGIN SYSTEM ---
+if not st.session_state.logged_in:
+    st.subheader("🎓 Student Classroom Login")
+    u_n = st.text_input("Apna Pura Naam")
+    u_m = st.text_input("Mobile Number (10 Digits)")
+    if st.button("Enter Classroom"):
+        if u_n and len(u_m.strip()) == 10:
+            st.session_state.logged_in = True; st.session_state.u_name = u_n; st.rerun()
+        else: st.error("❌ Sahi 10-digit number aur naam bharein.")
+
+    with st.expander("👨‍🏫 Harish Sir Access (Staff Only)"):
+        if st.text_input("Staff Security Key", type="password") == "harish_sir_pro":
+            if st.button("Sir Login"): 
+                st.session_state.role = "Admin"; st.session_state.logged_in = True; st.rerun()
+    st.stop()
+
+# --- SIDEBAR ---
+with st.sidebar:
+    st.image("https://img.freepik.com/free-vector/online-education-concept_52683-37453.jpg")
+    st.title("English Knowledge")
+    st.caption("Guide: Harish Sir")
+    st.divider()
+    menu = st.radio("Navigation", ["🏠 Dashboard", "🎥 Recorded", "📚 Notes", "💬 Doubts"])
+    if st.button("Logout"): st.session_state.logged_in = False; st.rerun()
+
+# --- APP INTERFACE ---
+live_now = get_st("live")
+call_now = get_st("call")
+
+if st.session_state.role == "Admin":
+    st.header("👨‍🏫 Master Control Panel")
+    is_live = st.toggle("🔴 START LIVE CLASS", value=(live_now == "ON"))
+    set_st("live", "ON" if is_live else "OFF")
     
-    if st.button("START LEARNING NOW 🚀"):
-        if len(mobile) == 10 and name:
-            st.session_state.user_name = name
-            st.session_state.login_state = "student_dashboard"
-            st.rerun()
+    if is_live:
+        st.success("✅ Aap Live Hain! Bache ab join kar sakte hain.")
+        # Teacher Video
+        webrtc_streamer(key="sir-branded-v1", mode=WebRtcMode.SENDRECV, rtc_configuration=RTC_CONFIG)
+        st.divider()
+        is_call = st.toggle("📞 Start Interaction Mode", value=(call_now == "ON"))
+        set_st("call", "ON" if is_call else "OFF")
+
+else:
+    if live_now == "ON":
+        st.markdown(f"""
+            <div style="background-color:#ff4b4b; color:white; padding:20px; border-radius:15px; text-align:center; border: 3px solid #ffd700;">
+                <h1 style="color:white; margin:0;">🔴 HARISH SIR IS LIVE NOW!</h1>
+                <p style="margin:5px 0 0 0; font-size:18px;">Click below to join the classroom</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        if st.button("▶️ JOIN HARISH SIR'S CLASS", use_container_width=True):
+            st.session_state.joined = True
+
+        if st.session_state.get('joined', False):
+            if call_now == "ON":
+                st.warning("📞 Face-to-Face Mode: Sir is talking to you!")
+                webrtc_streamer(key="stu-branded-call", mode=WebRtcMode.SENDRECV, rtc_configuration=RTC_CONFIG)
+            else:
+                st.info("📺 Watching Harish Sir Live...")
+                # Student View
+                webrtc_streamer(key="stu-branded-view", mode=WebRtcMode.RECVONLY, rtc_configuration=RTC_CONFIG)
+            
+            if st.button("Leave Class"): st.session_state.joined = False; st.rerun()
+
+    if menu == "🏠 Dashboard":
+        st.title(f"Namaste, {st.session_state.u_name}")
+        if live_now == "OFF": 
+            st.info("Harish Sir abhi live nahi hain. Class shuru hote hi yahan 'Join' button aa jayega.")
         else:
-            st.warning("Please enter a valid 10-digit number and your name.")
-    st.markdown("</div>", unsafe_allow_html=True)
-    if st.button("🔙 Back"):
-        st.session_state.login_state = "selection"
-        st.rerun()
-
-# --- 4. TEACHER DASHBOARD ---
-elif st.session_state.login_state == "teacher_dashboard":
-    st.title("👨‍🏫 Harish Sir's Panel")
-    if st.button("🚀 START LIVE CLASS"):
-        st.markdown(f'<meta http-equiv="refresh" content="0;URL=https://meet.jit.si/SelectionWay_Harish_Live">', unsafe_allow_html=True)
-    if st.button("Logout"):
-        st.session_state.login_state = "selection"
-        st.rerun()
-
-# --- 5. STUDENT DASHBOARD ---
-elif st.session_state.login_state == "student_dashboard":
-    st.title(f"👋 Welcome, {st.session_state.user_name}!")
-    st.info("Aap Selection Way Academy se jud chuke hain.")
-    if st.button("🔴 Join Live Class"):
-        st.markdown(f'<meta http-equiv="refresh" content="0;URL=https://meet.jit.si/SelectionWay_Harish_Live">', unsafe_allow_html=True)
-    if st.button("Logout"):
-        st.session_state.login_state = "selection"
-        st.rerun()
+            st.success("Harish Sir ki class chalu hai! Upar 'Join' par click karein.")
