@@ -6,7 +6,14 @@ import json
 # 1. PAGE SETUP
 st.set_page_config(page_title="English Knowledge by Harish Sir", layout="wide")
 
-# Data Storage
+# CSS for Professional Look
+st.markdown("""
+    <style>
+    .card { background-color: #f8f9fa; padding: 20px; border-radius: 15px; border-left: 10px solid #ff4b4b; margin-bottom: 15px; box-shadow: 2px 2px 10px rgba(0,0,0,0.1); }
+    </style>
+    """, unsafe_allow_html=True)
+
+# Files
 USER_DB = "users_data.json"
 QR_IMAGE_PATH = "harish_qr.png"
 
@@ -18,53 +25,52 @@ def load_users():
 def save_users(users):
     with open(USER_DB, "w") as f: json.dump(users, f)
 
-# Initializing Session States to prevent Errors
+def read_db(key):
+    if not os.path.exists(f"{key}.txt"): return "OFF"
+    with open(f"{key}.txt", "r") as f: return f.read().strip()
+
+# Initialize Session State
 if 'logged_in' not in st.session_state: st.session_state.logged_in = False
 if 'u_name' not in st.session_state: st.session_state.u_name = ""
-if 'role' not in st.session_state: st.session_state.role = "Student"
 
-# --- LOGIN & REGISTER SYSTEM ---
+# --- LOGIN & REGISTER ---
 if not st.session_state.logged_in:
-    st.title("🎓 Harish Sir - Classroom Login")
-    tab1, tab2, tab3 = st.tabs(["Student Login", "Register (New Student)", "Admin Access"])
-    
+    st.title("📖 English Knowledge - Harish Sir")
+    tab1, tab2, tab3 = st.tabs(["Student Login", "Register", "Admin Login"])
     users = load_users()
 
-    with tab1: # Login
-        log_mob = st.text_input("Mobile Number", key="l_mob")
-        log_pass = st.text_input("Password", type="password", key="l_pass")
-        if st.button("Login Now"):
-            if log_mob in users and users[log_mob]['password'] == log_pass:
+    with tab1:
+        l_mob = st.text_input("Mobile No.")
+        l_pass = st.text_input("Password", type="password")
+        if st.button("Login"):
+            if l_mob in users and users[l_mob]['password'] == l_pass:
                 st.session_state.logged_in = True
-                st.session_state.u_id = log_mob
-                st.session_state.u_name = users[log_mob]['name']
+                st.session_state.u_id = l_mob
+                st.session_state.u_name = users[l_mob]['name']
                 st.session_state.role = "Student"
                 st.rerun()
-            else: st.error("Galat Number ya Password!")
+            else: st.error("Galat Number/Password")
 
-    with tab2: # Register
-        reg_name = st.text_input("Apna Naam")
-        reg_mob = st.text_input("Mobile Number (10 Digits)")
-        reg_pass = st.text_input("Password Set Karein", type="password")
+    with tab2:
+        r_name = st.text_input("Naam")
+        r_mob = st.text_input("Mobile (10 Digits)")
+        r_pass = st.text_input("Password", type="password")
         if st.button("Create Account"):
-            if len(reg_mob) == 10 and reg_mob.isdigit():
-                users[reg_mob] = {"name": reg_name, "password": reg_pass, "paid": False}
+            if len(r_mob) == 10:
+                users[r_mob] = {"name": r_name, "password": r_pass, "paid": False}
                 save_users(users)
-                st.success("Account ban gaya! Ab Login tab par jayein.")
-            else: st.error("Sahi 10-digit number dalein.")
+                st.success("Account Ready! Ab Login karein.")
 
-    with tab3: # Admin Login (Harish Sir)
-        sir_pass = st.text_input("Sir Security Key", type="password")
-        if st.button("Sir Login"):
-            if sir_pass == "harish_sir_pro":
+    with tab3:
+        if st.text_input("Sir Key", type="password") == "harish_sir_pro":
+            if st.button("Admin Login"):
                 st.session_state.logged_in = True
                 st.session_state.u_name = "Harish Sir"
                 st.session_state.role = "Admin"
                 st.rerun()
-            else: st.error("Galat Key!")
     st.stop()
 
-# --- SIDEBAR (Updated with Screenshot features) ---
+# --- APP INTERFACE ---
 with st.sidebar:
     st.header(f"👤 {st.session_state.u_name}")
     st.caption("Organization Code YICKLF")
@@ -74,30 +80,56 @@ with st.sidebar:
         is_paid = users[st.session_state.u_id].get("paid", False)
         if is_paid: st.success("✅ PAID USER")
         else:
-            st.error("❌ FREE USER")
-            st.subheader("Buy Full Course (₹499)")
-            st.image("https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi://pay?pa=harishsir@upi&pn=HarishSir&am=499")
-            st.caption("Scan and pay ₹499")
+            st.error("❌ ACCESS LOCKED")
+            if os.path.exists(QR_IMAGE_PATH): st.image(QR_IMAGE_PATH, caption="Scan to Pay ₹499")
+            else: st.warning("Sir ne QR upload nahi kiya.")
+            st.markdown(f"[Send Screenshot to Sir](https://wa.me/919999999999?text=Mera%20ID:{st.session_state.u_id})")
     
-    st.divider()
-    # New options as per your screenshot
-    st.write("📂 Free Material")
-    st.write("💬 Students Testimonial")
     if st.button("Logout"):
         st.session_state.logged_in = False
         st.rerun()
 
-# --- DASHBOARD ---
+# --- MAIN DASHBOARD ---
+live_state = read_db("live")
+
 if st.session_state.role == "Admin":
-    st.title("👨‍🏫 Harish Sir Management")
-    users = load_users()
-    m_approve = st.text_input("Approve Student (Mobile Number)")
-    if st.button("Grant Access"):
-        if m_approve in users:
-            users[m_approve]["paid"] = True
-            save_users(users)
-            st.success(f"Mobile {m_approve} Approved!")
-        else: st.error("Number nahi mila.")
+    st.title("👨‍🏫 Sir Control Panel")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.subheader("📤 QR Upload")
+        qr_up = st.file_uploader("Upload Bar Code", type=['png','jpg'])
+        if qr_up:
+            with open(QR_IMAGE_PATH, "wb") as f: f.write(qr_up.getbuffer())
+            st.success("QR Updated!")
+        
+        st.subheader("🔴 Live Class")
+        if st.toggle("Go Live", value=(live_state == "ON")):
+            with open("live.txt", "w") as f: f.write("ON")
+            webrtc_streamer(key="sir", mode=WebRtcMode.SENDRECV, rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
+        else:
+            with open("live.txt", "w") as f: f.write("OFF")
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with col2:
+        st.markdown('<div class="card">', unsafe_allow_html=True)
+        st.subheader("✅ Approve Student")
+        users = load_users()
+        m_app = st.text_input("Mobile No. to Approve")
+        if st.button("Give Full Access"):
+            if m_app in users:
+                users[m_app]["paid"] = True
+                save_users(users)
+                st.success("Approved!")
+        st.markdown('</div>', unsafe_allow_html=True)
 else:
-    st.title(f"Namaste, {st.session_state.u_name}")
-    st.info("Class ke liye sidebar se 'Live' check karein.")
+    st.title("English Knowledge Dashboard")
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    if live_state == "ON":
+        users = load_users()
+        if users[st.session_state.u_id].get("paid"):
+            st.success("Sir is Live!")
+            webrtc_streamer(key="stu", mode=WebRtcMode.RECVONLY, rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
+        else: st.error("🔒 Locked: Please Pay ₹499 first.")
+    else: st.info("No Live Class at the moment.")
+    st.markdown('</div>', unsafe_allow_html=True)
