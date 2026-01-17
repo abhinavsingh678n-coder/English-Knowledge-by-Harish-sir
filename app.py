@@ -5,14 +5,21 @@ import os
 # 1. PAGE SETTINGS
 st.set_page_config(page_title="English Knowledge by Harish Sir", layout="wide", page_icon="🎓")
 
-# Signaling Configuration (Google's Public Server for Video Sync)
-RTC_CONFIG = RTCConfiguration({"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
+# --- ADVANCED VIDEO SYNC (Mobile Network Fix) ---
+# Ye configuration video ko 4G/5G mobile par chalane ke liye zaruri hai
+RTC_CONFIG = RTCConfiguration(
+    {"iceServers": [
+        {"urls": ["stun:stun.l.google.com:19302"]},
+        {"urls": ["stun:stun1.l.google.com:19302"]},
+        {"urls": ["stun:stun2.l.google.com:19302"]}
+    ]}
+)
 
-# GLOBAL STATUS SYNC (File based)
-def set_status(key, val):
+# --- DATABASE SYNC LOGIC ---
+def update_db(key, val):
     with open(f"{key}.txt", "w") as f: f.write(val)
 
-def get_status(key):
+def read_db(key):
     if not os.path.exists(f"{key}.txt"): return "OFF"
     with open(f"{key}.txt", "r") as f: return f.read().strip()
 
@@ -23,55 +30,64 @@ if 'role' not in st.session_state: st.session_state.role = "Student"
 # --- LOGIN SYSTEM ---
 if not st.session_state.logged_in:
     st.title("🎓 English Knowledge Login")
-    with st.expander("👨‍🏫 Harish Sir Access"):
-        if st.text_input("Security Key", type="password") == "harish_sir_pro":
-            if st.button("Admin Login"):
-                st.session_state.role = "Admin"; st.session_state.logged_in = True; st.rerun()
+    tab_st, tab_sir = st.tabs(["Student Entry", "Harish Sir Access"])
+    
+    with tab_st:
+        u_name = st.text_input("Apna Naam")
+        u_mob = st.text_input("Mobile (10 Digits Only)")
+        if st.button("Login as Student"):
+            if u_name and len(u_mob.strip()) == 10:
+                st.session_state.logged_in = True; st.session_state.u_name = u_name; st.session_state.u_id = u_mob.strip(); st.rerun()
+            else: st.error("❌ Sahi Naam aur 10-digit number dalein.")
 
-    u_name = st.text_input("Apna Naam")
-    u_mobile = st.text_input("Mobile Number (10 Digits)")
-    if st.button("Login as Student"):
-        if u_name and len(u_mobile.strip()) == 10:
-            st.session_state.logged_in = True; st.session_state.user_name = u_name; st.session_state.user_id = u_mobile.strip(); st.rerun()
+    with tab_sir:
+        pwd = st.text_input("Security Key", type="password")
+        if st.button("Admin Login"):
+            if pwd == "harish_sir_pro":
+                st.session_state.role = "Admin"; st.session_state.logged_in = True; st.rerun()
     st.stop()
 
 # --- SIDEBAR ---
 with st.sidebar:
     st.header("📖 English Knowledge")
     st.caption("By Harish Sir")
-    menu = st.radio("Navigation", ["🏠 Dashboard", "🎥 Recorded", "📚 Notes", "💬 Ask Doubts"])
+    menu = st.radio("Navigation", ["🏠 Dashboard", "🎥 Recorded", "📚 Notes", "💬 Doubts"])
     if st.button("Logout"): st.session_state.logged_in = False; st.rerun()
 
-# --- ADMIN PANEL (Harish Sir) ---
+# --- ADMIN PANEL (Teacher Control) ---
 if st.session_state.role == "Admin":
-    st.header("👨‍🏫 Master Control Panel")
-    t1, t2 = st.tabs(["🚀 LIVE CLASS", "📊 POLLS"])
+    st.header("👨‍🏫 Harish Sir's Master Control")
+    # Live Status Toggle
+    is_live = st.toggle("🔴 START LIVE CLASS", value=(read_db("live") == "ON"))
+    update_db("live", "ON" if is_live else "OFF")
     
-    with t1:
-        # Toggle Live Status
-        is_live = st.toggle("🔴 START LIVE CLASS", value=(get_status("live") == "ON"))
-        set_status("live", "ON" if is_live else "OFF")
+    if is_live:
+        st.success("✅ Aap Live Hain! Bache ab 'Join' button dekh sakte hain.")
+        # TEACHER VIDEO (SEND & RECEIVE)
+        webrtc_streamer(
+            key="sir-stream-final", 
+            mode=WebRtcMode.SENDRECV, 
+            rtc_configuration=RTC_CONFIG,
+            media_stream_constraints={"video": True, "audio": True}
+        )
         
-        if is_live:
-            st.success("✅ Aap Live Hain! Bache ab jud sakte hain.")
-            # SIR'S CAMERA (SEND ONLY)
-            webrtc_streamer(key="sir-main", mode=WebRtcMode.SENDRECV, rtc_configuration=RTC_CONFIG)
-            
-            st.divider()
-            is_call = st.toggle("📞 Start Video Call Interaction", value=(get_status("call") == "ON"))
-            set_status("call", "ON" if is_call else "OFF")
-        else:
-            set_status("call", "OFF")
+        st.divider()
+        # Interaction Control
+        is_call = st.toggle("📞 Start Video Call Interaction", value=(read_db("call") == "ON"))
+        update_db("call", "ON" if is_call else "OFF")
+    else:
+        update_db("call", "OFF")
 
-# --- STUDENT PANEL (PW Style) ---
+# --- STUDENT PANEL (PW Style Logic) ---
 else:
-    live_state = get_status("live")
-    call_state = get_status("call")
+    live_now = read_db("live")
+    call_now = read_db("call")
     
-    if live_state == "ON":
+    if live_now == "ON":
         st.markdown("""
-            <div style="background-color:#ff4b4b; color:white; padding:20px; border-radius:15px; text-align:center; border: 3px solid white;">
-                <h2 style="color:white; margin:0;">🔴 HARISH SIR IS LIVE NOW!</h2>
+            <div style="background-color:#ff4b4b; color:white; padding:15px; border-radius:10px; text-align:center; border: 2px solid white;">
+                <h2>🔴 HARISH SIR IS LIVE NOW!</h2>
+                <p>Niche button par click karke class join karein.</p>
             </div>
             """, unsafe_allow_html=True)
         
@@ -79,17 +95,21 @@ else:
             st.session_state.joined = True
 
         if st.session_state.get('joined', False):
-            # PW Mode Logic
-            if call_state == "ON":
-                st.warning("📞 Video Call Active: Sir is talking to you!")
-                webrtc_streamer(key="stu-interaction", mode=WebRtcMode.SENDRECV, rtc_configuration=RTC_CONFIG)
+            # Dynamic Switching: Video Call or Just Lecture
+            if call_now == "ON":
+                st.warning("📞 Interaction Mode: Sir is talking to you face-to-face!")
+                webrtc_streamer(key="stu-interaction-final", mode=WebRtcMode.SENDRECV, rtc_configuration=RTC_CONFIG)
             else:
                 st.info("📺 Watching Harish Sir Live...")
-                webrtc_streamer(key="stu-view", mode=WebRtcMode.RECVONLY, rtc_configuration=RTC_CONFIG)
+                # RECVONLY means student only watches teacher
+                webrtc_streamer(key="stu-view-final", mode=WebRtcMode.RECVONLY, rtc_configuration=RTC_CONFIG)
             
             if st.button("Leave Class"): st.session_state.joined = False; st.rerun()
-
+    
     if menu == "🏠 Dashboard":
-        st.title(f"Namaste, {st.session_state.user_name}")
-        if live_state == "OFF": st.info("Abhi koi Live class nahi chal rahi hai.")
+        st.title(f"Namaste, {st.session_state.u_name}")
+        if live_now == "OFF": 
+            st.info("Abhi koi Live class nahi chal rahi hai. Jab Sir live honge, yahan JOIN button aa jayega.")
+        else:
+            st.success("Harish Sir Live hain! Upar Join button par click karein.")
         st.image("https://img.freepik.com/free-vector/online-education-concept_52683-37453.jpg")
