@@ -3,120 +3,131 @@ from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration
 import os
 import json
 import pandas as pd
+from datetime import datetime
 
-# 1. PAGE SETUP
-st.set_page_config(page_title="English Knowledge by Harish Sir", layout="wide")
+# 1. ELITE UI CONFIGURATION
+st.set_page_config(page_title="Harish Sir English Pro", layout="wide", initial_sidebar_state="collapsed")
 
-# CSS for Photo-like Cards
+# Custom CSS for Premium "App" Feel
 st.markdown("""
     <style>
-    .card { background-color: #f8f9fa; padding: 20px; border-radius: 15px; border-left: 10px solid #ff4b4b; margin-bottom: 15px; box-shadow: 2px 2px 10px rgba(0,0,0,0.1); }
+    /* Professional PW-Style UI */
+    #MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}
+    .stApp { background-color: #F4F7FE; }
+    .hero-section {
+        background: linear-gradient(90deg, #FF4B4B 0%, #FF8F8F 100%);
+        color: white; padding: 40px; border-radius: 0 0 40px 40px;
+        text-align: center; margin-bottom: 25px; box-shadow: 0 10px 20px rgba(255, 75, 75, 0.2);
+    }
+    .feature-card {
+        background: white; padding: 25px; border-radius: 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px;
+        border-bottom: 5px solid #FF4B4B; transition: 0.3s;
+    }
+    .feature-card:hover { transform: translateY(-5px); }
+    .nav-bar { background: white; padding: 15px; position: fixed; bottom: 0; width: 100%; display: flex; justify-content: space-around; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); }
     </style>
     """, unsafe_allow_html=True)
 
-# Files
-USER_DB = "users_data.json"
-QR_IMAGE_PATH = "harish_qr.png"
-DOUBT_FILE = "doubts.csv"
+# Data Infrastructure
+DB_FILE = "education_pro_db.json"
+QR_IMG = "official_qr.png"
 
-def load_users():
-    if os.path.exists(USER_DB):
-        with open(USER_DB, "r") as f: return json.load(f)
+def load_pro_db():
+    if os.path.exists(DB_FILE):
+        with open(DB_FILE, "r") as f: return json.load(f)
     return {}
 
-def save_users(users):
-    with open(USER_DB, "w") as f: json.dump(users, f)
+def save_pro_db(data):
+    with open(DB_FILE, "w") as f: json.dump(data, f)
 
 if 'logged_in' not in st.session_state: st.session_state.logged_in = False
-if 'u_name' not in st.session_state: st.session_state.u_name = ""
 
-# --- LOGIN & REGISTER ---
+# --- 🟢 PREMIUM LOGIN SYSTEM ---
 if not st.session_state.logged_in:
-    st.title("📖 English Knowledge - Harish Sir")
-    t1, t2, t3 = st.tabs(["Student Login", "Register", "Admin Login"])
-    users = load_users()
-    with t1:
-        l_mob = st.text_input("Mobile No.")
-        l_pass = st.text_input("Password", type="password")
-        if st.button("Login"):
-            if l_mob in users and users[l_mob]['password'] == l_pass:
-                st.session_state.logged_in = True; st.session_state.u_id = l_mob; st.session_state.u_name = users[l_mob]['name']; st.session_state.role = "Student"; st.rerun()
-            else: st.error("Galat Details!")
-    with t2:
-        r_name = st.text_input("Naam"); r_mob = st.text_input("Mobile (10 Digits)"); r_pass = st.text_input("Set Password", type="password")
-        if st.button("Create Account"):
-            if len(r_mob) == 10:
-                users[r_mob] = {"name": r_name, "password": r_pass, "paid": False}; save_users(users); st.success("Ready! Login karein.")
-    with t3:
-        if st.text_input("Sir Key", type="password") == "harish_sir_pro":
-            if st.button("Admin Login"): st.session_state.logged_in = True; st.session_state.u_name = "Harish Sir"; st.session_state.role = "Admin"; st.rerun()
+    st.markdown('<div class="hero-section"><h1>🎓 Harish Sir Classes</h1><p>Future of English Learning</p></div>', unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1,2,1])
+    with col2:
+        tab_log, tab_reg, tab_adm = st.tabs(["Login", "Sign Up", "Admin Portal"])
+        db = load_pro_db()
+
+        with tab_log:
+            m = st.text_input("Mobile Number", placeholder="10 Digits")
+            p = st.text_input("Password", type="password")
+            if st.button("LOGIN NOW", use_container_width=True):
+                if m in db and db[m]['password'] == p:
+                    st.session_state.logged_in = True; st.session_state.u_id = m; st.session_state.u_name = db[m]['name']; st.session_state.role = "Student"; st.rerun()
+                else: st.error("❌ Details galat hain!")
+
+        with tab_reg:
+            name = st.text_input("Full Name")
+            mob = st.text_input("Mobile", key="rm")
+            pas = st.text_input("Set Secure Password", type="password", key="rp")
+            if st.button("CREATE ACCOUNT", use_container_width=True):
+                if len(mob) == 10 and mob.isdigit():
+                    db[mob] = {"name": name, "password": pas, "paid": False}; save_pro_db(db); st.success("🎉 Account Ready!")
+                else: st.error("❌ Valid 10-digit number dalein.")
+
+        with tab_adm:
+            if st.text_input("Admin Key", type="password") == "harish_sir_pro":
+                if st.button("SIR LOGIN"): st.session_state.logged_in = True; st.session_state.u_name = "Harish Sir"; st.session_state.role = "Admin"; st.rerun()
     st.stop()
 
-# --- SIDEBAR (Updated Screenshot Menu) ---
+# --- 🔵 APP DASHBOARD ---
 with st.sidebar:
-    st.header(f"👤 {st.session_state.u_name}")
-    st.caption("Organization Code YICKLF")
+    st.markdown(f'<div style="text-align:center;"><h3>👤 {st.session_state.u_name}</h3></div>', unsafe_allow_html=True)
+    st.caption("Org Code: YICKLF | Verified User ✅")
     
-    if st.session_state.role == "Student":
-        users = load_users()
-        is_paid = users[st.session_state.u_id].get("paid", False)
-        if not is_paid:
-            st.error("❌ ACCESS LOCKED")
-            if os.path.exists(QR_IMAGE_PATH): st.image(QR_IMAGE_PATH, caption="Scan to Pay")
-            st.markdown(f"[Send Screenshot to Sir](https://wa.me/919999999999)")
+    db = load_pro_db()
+    is_paid = db.get(st.session_state.get('u_id',''), {}).get("paid", False) if st.session_state.role != "Admin" else True
     
-    menu = st.radio("Menu", ["🏠 Dashboard", "🔴 Live Class", "❓ Doubt Panel", "📝 Homework", "📂 Free Material"])
+    if not is_paid:
+        st.markdown('<div style="background:#FFF0F0; padding:15px; border-radius:15px; text-align:center; border:1px solid #FF4B4B;">', unsafe_allow_html=True)
+        st.write("🔒 PREMIUM LOCKED")
+        if os.path.exists(QR_IMG): st.image(QR_IMG, caption="Scan to Pay ₹499")
+        st.markdown(f"[Send Screenshot](https://wa.me/919999999999?text=UnlockID:{st.session_state.u_id})")
+        st.markdown('</div>', unsafe_allow_html=True)
+    
+    menu = st.radio("Menu", ["🏠 Dashboard", "🔴 Live Class", "❓ Ask Doubt", "📝 Homework", "📂 Resources"])
     if st.button("Logout"): st.session_state.logged_in = False; st.rerun()
 
-# --- MAIN DASHBOARD ---
-live_state = "ON" if os.path.exists("live.txt") and open("live.txt").read() == "ON" else "OFF"
+# --- 🔴 LIVE & CONTENT ENGINE ---
+live_f = "live_status.txt"
+live_on = os.path.exists(live_f) and open(live_f).read() == "ON"
 
 if st.session_state.role == "Admin":
-    st.title("👨‍🏫 Sir Control Panel")
-    t_live, t_pay, t_doubts = st.tabs(["Live & QR", "Approvals", "Student Doubts"])
-    
-    with t_live:
-        qr_up = st.file_uploader("Upload Bar Code", type=['png','jpg'])
+    st.title("👨‍🏫 Sir Control Center")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.markdown('<div class="feature-card">', unsafe_allow_html=True)
+        st.subheader("Manage Live")
+        if st.toggle("Start Stream", value=live_on):
+            open(live_f, "w").write("ON")
+            webrtc_streamer(key="sir_pro", mode=WebRtcMode.SENDRECV, rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
+        else: open(live_f, "w").write("OFF")
+        st.markdown('</div>', unsafe_allow_html=True)
+    with col2:
+        st.markdown('<div class="feature-card">', unsafe_allow_html=True)
+        st.subheader("Update Barcode")
+        qr_up = st.file_uploader("Upload New QR", type=['png','jpg'])
         if qr_up:
-            with open(QR_IMAGE_PATH, "wb") as f: f.write(qr_up.getbuffer())
+            with open(QR_IMG, "wb") as f: f.write(qr_up.getbuffer())
             st.success("QR Updated!")
-        if st.toggle("Go Live", value=(live_state == "ON")):
-            with open("live.txt", "w") as f: f.write("ON")
-            webrtc_streamer(key="sir", mode=WebRtcMode.SENDRECV, rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
-        else:
-            with open("live.txt", "w") as f: f.write("OFF")
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    with t_pay:
-        m_app = st.text_input("Approve Mobile No.")
-        if st.button("Grant Access"):
-            users = load_users(); users[m_app]["paid"] = True; save_users(users); st.success("Approved!")
-
-    with t_doubts:
-        if os.path.exists(DOUBT_FILE): st.dataframe(pd.read_csv(DOUBT_FILE))
+    m_app = st.text_input("Mobile No. to Approve")
+    if st.button("UNLOCK STUDENT ACCESS", use_container_width=True):
+        db = load_pro_db(); db[m_app]["paid"] = True; save_pro_db(db); st.success("Student Approved!")
 
 else:
     if menu == "🏠 Dashboard":
-        st.title(f"Namaste, {st.session_state.u_name}")
-        if live_state == "ON": st.error("🔴 SIR IS LIVE NOW!")
-        st.image("https://img.freepik.com/free-vector/online-education-concept_52683-37453.jpg")
-
-    elif menu == "❓ Doubt Panel":
-        st.subheader("Ask Sir a Question")
-        msg = st.text_area("Apna doubt yahan likhein...")
-        if st.button("Submit Doubt"):
-            d_data = pd.DataFrame([[st.session_state.u_name, msg]], columns=["Student", "Doubt"])
-            if os.path.exists(DOUBT_FILE): d_data.to_csv(DOUBT_FILE, mode='a', header=False, index=False)
-            else: d_data.to_csv(DOUBT_FILE, index=False)
-            st.success("Doubt Sir ko bhej diya gaya hai!")
-
-    elif menu == "📝 Homework":
-        st.subheader("Homework Upload")
-        hw_file = st.file_uploader("Upload Homework (PDF/Image)")
-        if hw_file: st.success("Homework Uploaded Successfully!")
+        st.markdown(f'<div class="hero-section"><h2>Hello, {st.session_state.u_name}</h2></div>', unsafe_allow_html=True)
+        if live_on: st.markdown('<div class="feature-card" style="border-left:10px solid red;">🔴 LIVE CLASS IS ON! Join Now.</div>', unsafe_allow_html=True)
+        st.markdown('<div class="feature-card"><h3>📖 Chapter: Tenses</h3><p>Recorded classes and notes updated.</p></div>', unsafe_allow_html=True)
 
     elif menu == "🔴 Live Class":
-        users = load_users()
-        if users[st.session_state.u_id].get("paid"):
-            if live_state == "ON": webrtc_streamer(key="stu", mode=WebRtcMode.RECVONLY, rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
-            else: st.info("Sir is not live.")
-        else: st.error("🔒 Please pay to watch live.")
+        if is_paid:
+            if live_on: webrtc_streamer(key="stu_pro", mode=WebRtcMode.RECVONLY, rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
+            else: st.info("Sir abhi offline hain.")
+        else: st.error("🔒 Course purchase kijiye live dekhne ke liye.")
