@@ -2,141 +2,140 @@ import streamlit as st
 from streamlit_webrtc import webrtc_streamer, WebRtcMode, RTCConfiguration
 import os
 import json
-import pandas as pd
+import qrcode
+from io import BytesIO
+from datetime import datetime
 
-# 1. ULTRA-PRO UI CONFIG (Bilkul App jaisa look)
-st.set_page_config(page_title="Harish Sir Pro App", layout="wide", initial_sidebar_state="collapsed")
+# 1. PREMIUM MOBILE APP UI CONFIG
+st.set_page_config(page_title="Harish Sir English Pro", layout="wide", initial_sidebar_state="collapsed")
 
 st.markdown("""
     <style>
-    /* Premium App Look */
+    /* Professional PW Styling */
     #MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}
-    .stApp { background-color: #F0F4FF; }
+    .stApp { background-color: #F4F7FE; }
     
-    /* PW Style Gradient Header */
     .app-header {
-        background: linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%);
+        background: linear-gradient(135deg, #002E5D 0%, #0056B3 100%);
         color: white; padding: 30px; border-radius: 0 0 35px 35px;
-        text-align: center; box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.15);
     }
     
-    /* Smooth Feature Cards */
-    .pro-card {
-        background: white; padding: 25px; border-radius: 20px;
-        margin-top: -20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-        border-left: 10px solid #1E3A8A;
+    .feature-card {
+        background: white; padding: 25px; border-radius: 22px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.05); margin-bottom: 20px;
+        border-left: 10px solid #FFD700; /* Golden Theme for Selection Batch */
     }
     
-    /* Live Indicator */
-    .live-pulse {
-        background: red; border-radius: 50%; width: 12px; height: 12px;
-        display: inline-block; margin-right: 8px; animation: pulse 1s infinite;
+    .live-indicator {
+        background: #FF0000; color: white; padding: 4px 12px;
+        border-radius: 20px; font-weight: bold; font-size: 11px;
+        animation: blinker 1.5s linear infinite;
     }
-    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.3; } 100% { opacity: 1; } }
+    @keyframes blinker { 50% { opacity: 0; } }
     </style>
     """, unsafe_allow_html=True)
 
-# 2. ADVANCED STREAMING CONFIG (Bina rukawat class ke liye)
-RTC_CONFIG = RTCConfiguration(
-    {"iceServers": [
-        {"urls": ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"]},
-        {"urls": ["stun:stun2.l.google.com:19302", "stun:stun3.l.google.com:19302"]}
-    ]}
-)
-
-# Data Persistence
-DB = "pro_user_data.json"
-QR_IMG = "official_scanner.png"
+# Data & Security Config
+USER_DB = "enterprise_users_v2.json"
+SIR_UPI = "8948636213@ybl"
+COURSE_PRICE = "499"
 
 def load_db():
-    if os.path.exists(DB):
-        with open(DB, "r") as f: return json.load(f)
+    if os.path.exists(USER_DB):
+        with open(USER_DB, "r") as f: return json.load(f)
     return {}
 
 def save_db(data):
-    with open(DB, "w") as f: json.dump(data, f)
+    with open(USER_DB, "w") as f: json.dump(data, f)
+
+# Professional UPI QR Engine
+def generate_pro_qr(upi_id, amount, user_id):
+    # Auto-fills name, amount and remarks in the student's payment app
+    upi_url = f"upi://pay?pa={upi_id}&pn=Harish_Sir&am={amount}&cu=INR&tn=Selection_Batch_ID_{user_id}"
+    qr = qrcode.make(upi_url)
+    buf = BytesIO()
+    qr.save(buf, format="PNG")
+    return buf.getvalue()
 
 if 'logged_in' not in st.session_state: st.session_state.logged_in = False
 
-# --- AUTHENTICATION ---
+# --- 🔐 SECURE LOGIN / REGISTRATION ---
 if not st.session_state.logged_in:
-    st.markdown('<div class="app-header"><h1>🎓 English Knowledge Pro</h1><p>Powered by Harish Sir</p></div>', unsafe_allow_html=True)
-    
-    col1, col2, col3 = st.columns([1,2,1])
-    with col2:
-        st.markdown('<div class="pro-card">', unsafe_allow_html=True)
-        t_log, t_reg, t_adm = st.tabs(["🔑 Login", "📝 Register", "👨‍🏫 Admin"])
-        db = load_db()
+    st.markdown('<div class="app-header"><h1>🎓 ENGLISH KNOWLEDGE PRO</h1><p>Future of Selection Starts Here</p></div>', unsafe_allow_html=True)
+    tab_log, tab_reg, tab_adm = st.tabs(["🔑 Login", "✨ New Student", "👨‍🏫 Admin"])
+    db = load_db()
 
-        with t_log:
-            mob = st.text_input("Mobile No.")
-            pas = st.text_input("Password", type="password")
-            if st.button("LOG IN", use_container_width=True):
-                if mob in db and db[mob]['password'] == pas:
-                    st.session_state.logged_in = True; st.session_state.u_id = mob; st.session_state.u_name = db[mob]['name']; st.session_state.role = "Student"; st.rerun()
-                else: st.error("Wrong Details!")
+    with tab_log:
+        m = st.text_input("Registered Mobile Number")
+        p = st.text_input("Password", type="password")
+        if st.button("LOGIN TO CLASSROOM", use_container_width=True):
+            if m in db and db[m]['password'] == p:
+                st.session_state.logged_in = True; st.session_state.u_id = m; st.session_state.u_name = db[m]['name']; st.session_state.role = "Student"; st.rerun()
+            else: st.error("❌ Invalid Mobile or Password")
 
-        with t_reg:
-            name = st.text_input("Name")
-            rm = st.text_input("10 Digit Mobile")
-            rp = st.text_input("Create Password", type="password")
-            if st.button("CREATE ACCOUNT", use_container_width=True):
-                if len(rm) == 10:
-                    db[rm] = {"name": name, "password": rp, "paid": False}; save_db(db); st.success("Ready! Please Login.")
-        
-        with t_adm:
-            if st.text_input("Sir Key", type="password") == "harish_sir_pro":
-                if st.button("Admin Entry"): st.session_state.logged_in = True; st.session_state.role = "Admin"; st.session_state.u_name = "Harish Sir"; st.rerun()
-        st.markdown('</div>', unsafe_allow_html=True)
+    with tab_reg:
+        n = st.text_input("Full Name")
+        rm = st.text_input("Mobile (10 Digits)")
+        rp = st.text_input("Set Secure Password", type="password")
+        if st.button("GET STARTED", use_container_width=True):
+            if len(rm) == 10 and rm.isdigit():
+                db[rm] = {"name": n, "password": rp, "paid": False, "date": str(datetime.now())}
+                save_db(db); st.success("✅ Registration Successful! Please Login.")
+            else: st.error("❌ Use valid 10-digit Indian mobile number")
+
+    with tab_adm:
+        if st.text_input("Master Admin Key", type="password") == "harish_sir_pro":
+            if st.button("SIR LOGIN"): st.session_state.logged_in = True; st.session_state.role = "Admin"; st.session_state.u_name = "Harish Sir"; st.rerun()
     st.stop()
 
-# --- APP INTERFACE ---
+# --- 📱 PROFESSIONAL SIDEBAR (PW Menu Style) ---
 with st.sidebar:
-    st.markdown(f"### Welcome\n## {st.session_state.u_name}")
-    st.caption("Premium Account Status: Active ✅")
+    st.markdown(f"### 👤 {st.session_state.u_name}")
+    st.caption("Batch: Selection 2026 | Verified ✅")
     
     db = load_db()
     is_paid = db.get(st.session_state.get('u_id',''), {}).get("paid", False) if st.session_state.role != "Admin" else True
     
     if not is_paid:
-        st.warning("🔒 Course Locked")
-        if os.path.exists(QR_IMG): st.image(QR_IMG, caption="Scan to Pay ₹499")
-        st.markdown(f"[WhatsApp Screenshot](https://wa.me/919999999999?text=ID:{st.session_state.u_id})")
+        st.markdown('<div class="feature-card" style="border-left:8px solid #FF0000; text-align:center;">', unsafe_allow_html=True)
+        st.write("🔒 PREMIUM LOCKED")
+        # Dynamic QR for Harish Sir
+        qr_img = generate_pro_qr(SIR_UPI, COURSE_PRICE, st.session_state.u_id)
+        st.image(qr_img, caption=f"Scan to Unlock for ₹{COURSE_PRICE}")
+        st.markdown(f"[WhatsApp Receipt](https://wa.me/918948636213?text=Unlock_My_ID_{st.session_state.u_id})")
+        st.markdown('</div>', unsafe_allow_html=True)
     
-    menu = st.radio("Navigation", ["🏠 Home", "🔴 Live Class", "📝 Homework", "❓ Doubt Panel"])
+    st.divider()
+    menu = st.radio("MAIN MENU", ["🏠 Dashboard", "🔴 Live Class", "📂 Study Material", "📝 Homework", "❓ Doubt Desk"])
     if st.button("Logout"): st.session_state.logged_in = False; st.rerun()
 
-# --- LOGIC ENGINE ---
-live_state = "ON" if os.path.exists("live_active.txt") and open("live_active.txt").read() == "ON" else "OFF"
+# --- 🚀 ENGINE: LIVE CLASS & ADMIN CONTROL ---
+live_active = os.path.exists("live_active.txt") and open("live_active.txt").read() == "ON"
 
 if st.session_state.role == "Admin":
-    st.title("👨‍🏫 Harish Sir's Control Center")
-    col_a, col_b = st.columns(2)
-    
-    with col_a:
-        st.subheader("1. Stream Management")
-        if st.toggle("Start Live Class", value=(live_state == "ON")):
+    st.title("👨‍🏫 Sir's Control Console")
+    a1, a2 = st.tabs(["📡 Live Control", "👥 Student Management"])
+    with a1:
+        if st.toggle("Start Live Stream", value=live_active):
             with open("live_active.txt", "w") as f: f.write("ON")
-            webrtc_streamer(key="admin_stream", mode=WebRtcMode.SENDRECV, rtc_configuration=RTC_CONFIG, media_stream_constraints={"video": True, "audio": True})
+            webrtc_streamer(key="sir_pro", mode=WebRtcMode.SENDRECV, rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
         else: open("live_active.txt", "w").write("OFF")
+    with a2:
+        m_app = st.text_input("Enter Student Mobile Number")
+        if st.button("APPROVE PAID ACCESS"):
+            db = load_db(); db[m_app]["paid"] = True; save_db(db); st.success(f"{m_app} is now a Premium Student!")
 
-    with col_b:
-        st.subheader("2. Student Approval")
-        m_app = st.text_input("Student Mobile Number")
-        if st.button("Approve Student"):
-            db = load_db(); db[m_app]["paid"] = True; save_db(db); st.success("Access Granted!")
-
-else: # Student Logic
-    if menu == "🏠 Home":
-        st.markdown(f'<div class="app-header"><h2>Welcome, {st.session_state.u_name}</h2></div>', unsafe_allow_html=True)
-        if live_state == "ON":
-            st.markdown('<div class="pro-card"><h3><span class="live-pulse"></span> Harish Sir is LIVE!</h3><p>Go to "Live Class" tab to join.</p></div>', unsafe_allow_html=True)
-        st.markdown('<div class="pro-card"><h3>📚 Latest Material</h3><p>Tense & Verbs notes uploaded in PDF.</p></div>', unsafe_allow_html=True)
+else: # Student Classroom logic
+    if menu == "🏠 Dashboard":
+        st.markdown('<div class="app-header"><h2>DASHBOARD</h2></div>', unsafe_allow_html=True)
+        if live_active:
+            st.markdown('<div class="feature-card"><h3><span class="live-indicator">LIVE</span> Class is Running!</h3><p>Harish Sir is teaching live now. Join quickly.</p></div>', unsafe_allow_html=True)
+        st.markdown('<div class="feature-card"><h3>📅 Schedule</h3><p>Tense Part 2 - Live at 10:00 AM Tomorrow</p></div>', unsafe_allow_html=True)
 
     elif menu == "🔴 Live Class":
         if is_paid:
-            if live_state == "ON":
-                st.success("Connected to Harish Sir's Classroom")
-                webrtc_streamer(key="student_stream", mode=WebRtcMode.RECVONLY, rtc_configuration=RTC_CONFIG, media_stream_constraints={"video": True, "audio": True})
-            else: st.info("Abhi koi live class nahi chal rahi hai.")
-        else: st.error("🔒 Please unlock the course to watch live classes.")
+            if live_active: 
+                webrtc_streamer(key="stu_pro", mode=WebRtcMode.RECVONLY, rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
+            else: st.info("Class has not started. Please check the dashboard for schedule.")
+        else: st.error("🔒 Full access required. Please pay via sidebar to join live.")
