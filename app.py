@@ -4,138 +4,138 @@ import os
 import json
 import qrcode
 from io import BytesIO
-from datetime import datetime
 
-# 1. PREMIUM MOBILE APP UI CONFIG
+# 1. UI CONFIGURATION
 st.set_page_config(page_title="Harish Sir English Pro", layout="wide", initial_sidebar_state="collapsed")
 
 st.markdown("""
     <style>
-    /* Professional PW Styling */
     #MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}
-    .stApp { background-color: #F4F7FE; }
-    
-    .app-header {
-        background: linear-gradient(135deg, #002E5D 0%, #0056B3 100%);
-        color: white; padding: 30px; border-radius: 0 0 35px 35px;
-        text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.15);
-    }
-    
-    .feature-card {
-        background: white; padding: 25px; border-radius: 22px;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.05); margin-bottom: 20px;
-        border-left: 10px solid #FFD700; /* Golden Theme for Selection Batch */
-    }
-    
-    .live-indicator {
-        background: #FF0000; color: white; padding: 4px 12px;
-        border-radius: 20px; font-weight: bold; font-size: 11px;
-        animation: blinker 1.5s linear infinite;
-    }
+    .stApp { background: #F4F7FE; }
+    .nav-header { background: #002E5D; color: white; padding: 25px; border-radius: 0 0 30px 30px; text-align: center; margin-bottom: 20px;}
+    .batch-card { background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; border-left: 8px solid #FFD700; }
+    .live-dot { height: 12px; width: 12px; background-color: #ff0000; border-radius: 50%; display: inline-block; margin-right: 5px; animation: blinker 1.5s linear infinite; }
     @keyframes blinker { 50% { opacity: 0; } }
     </style>
     """, unsafe_allow_html=True)
 
-# Data & Security Config
-USER_DB = "enterprise_users_v2.json"
+# Data Persistence
+USER_DB = "users_v4.json"
+BATCH_DB = "batches_v4.json"
 SIR_UPI = "8948636213@ybl"
-COURSE_PRICE = "499"
 
-def load_db():
-    if os.path.exists(USER_DB):
-        with open(USER_DB, "r") as f: return json.load(f)
+def load_data(file):
+    if os.path.exists(file):
+        with open(file, "r") as f: return json.load(f)
     return {}
 
-def save_db(data):
-    with open(USER_DB, "w") as f: json.dump(data, f)
-
-# Professional UPI QR Engine
-def generate_pro_qr(upi_id, amount, user_id):
-    # Auto-fills name, amount and remarks in the student's payment app
-    upi_url = f"upi://pay?pa={upi_id}&pn=Harish_Sir&am={amount}&cu=INR&tn=Selection_Batch_ID_{user_id}"
-    qr = qrcode.make(upi_url)
-    buf = BytesIO()
-    qr.save(buf, format="PNG")
-    return buf.getvalue()
+def save_data(file, data):
+    with open(file, "w") as f: json.dump(data, f)
 
 if 'logged_in' not in st.session_state: st.session_state.logged_in = False
 
-# --- 🔐 SECURE LOGIN / REGISTRATION ---
+# --- 🟢 AUTH & NAVIGATION (Same as before) ---
 if not st.session_state.logged_in:
-    st.markdown('<div class="app-header"><h1>🎓 ENGLISH KNOWLEDGE PRO</h1><p>Future of Selection Starts Here</p></div>', unsafe_allow_html=True)
-    tab_log, tab_reg, tab_adm = st.tabs(["🔑 Login", "✨ New Student", "👨‍🏫 Admin"])
-    db = load_db()
-
-    with tab_log:
-        m = st.text_input("Registered Mobile Number")
+    st.markdown('<div class="nav-header"><h1>🎓 HARISH SIR ENGLISH PRO</h1></div>', unsafe_allow_html=True)
+    t1, t2, t3 = st.tabs(["🔒 Login", "✨ Register", "👨‍🏫 Admin"])
+    db = load_data(USER_DB)
+    with t1:
+        m = st.text_input("Mobile No.")
         p = st.text_input("Password", type="password")
-        if st.button("LOGIN TO CLASSROOM", use_container_width=True):
+        if st.button("LOGIN", use_container_width=True):
             if m in db and db[m]['password'] == p:
                 st.session_state.logged_in = True; st.session_state.u_id = m; st.session_state.u_name = db[m]['name']; st.session_state.role = "Student"; st.rerun()
-            else: st.error("❌ Invalid Mobile or Password")
-
-    with tab_reg:
-        n = st.text_input("Full Name")
-        rm = st.text_input("Mobile (10 Digits)")
-        rp = st.text_input("Set Secure Password", type="password")
-        if st.button("GET STARTED", use_container_width=True):
-            if len(rm) == 10 and rm.isdigit():
-                db[rm] = {"name": n, "password": rp, "paid": False, "date": str(datetime.now())}
-                save_db(db); st.success("✅ Registration Successful! Please Login.")
-            else: st.error("❌ Use valid 10-digit Indian mobile number")
-
-    with tab_adm:
-        if st.text_input("Master Admin Key", type="password") == "harish_sir_pro":
-            if st.button("SIR LOGIN"): st.session_state.logged_in = True; st.session_state.role = "Admin"; st.session_state.u_name = "Harish Sir"; st.rerun()
+    with t2:
+        n = st.text_input("Full Name"); rm = st.text_input("Mobile"); rp = st.text_input("Password", type="password")
+        if st.button("CREATE ACCOUNT"):
+            db[rm] = {"name": n, "password": rp, "purchased": []}; save_data(USER_DB, db); st.success("Account Created!")
+    with t3:
+        if st.text_input("Admin Key", type="password") == "harish_sir_pro":
+            if st.button("SIR LOGIN"): st.session_state.logged_in = True; st.session_state.u_name = "Harish Sir"; st.session_state.role = "Admin"; st.rerun()
     st.stop()
 
-# --- 📱 PROFESSIONAL SIDEBAR (PW Menu Style) ---
 with st.sidebar:
-    st.markdown(f"### 👤 {st.session_state.u_name}")
-    st.caption("Batch: Selection 2026 | Verified ✅")
-    
-    db = load_db()
-    is_paid = db.get(st.session_state.get('u_id',''), {}).get("paid", False) if st.session_state.role != "Admin" else True
-    
-    if not is_paid:
-        st.markdown('<div class="feature-card" style="border-left:8px solid #FF0000; text-align:center;">', unsafe_allow_html=True)
-        st.write("🔒 PREMIUM LOCKED")
-        # Dynamic QR for Harish Sir
-        qr_img = generate_pro_qr(SIR_UPI, COURSE_PRICE, st.session_state.u_id)
-        st.image(qr_img, caption=f"Scan to Unlock for ₹{COURSE_PRICE}")
-        st.markdown(f"[WhatsApp Receipt](https://wa.me/918948636213?text=Unlock_My_ID_{st.session_state.u_id})")
-        st.markdown('</div>', unsafe_allow_html=True)
-    
-    st.divider()
-    menu = st.radio("MAIN MENU", ["🏠 Dashboard", "🔴 Live Class", "📂 Study Material", "📝 Homework", "❓ Doubt Desk"])
+    st.markdown(f"### Hi, {st.session_state.u_name}")
+    if st.session_state.role == "Admin":
+        menu = st.radio("SIR MENU", ["Create Batch", "Approve Payments", "🔴 Go Live"])
+    else:
+        menu = st.radio("STUDENT MENU", ["🏠 Explore Batches", "📚 My Batches"])
     if st.button("Logout"): st.session_state.logged_in = False; st.rerun()
 
-# --- 🚀 ENGINE: LIVE CLASS & ADMIN CONTROL ---
-live_active = os.path.exists("live_active.txt") and open("live_active.txt").read() == "ON"
-
+# --- 👨‍🏫 ADMIN: BATCH-WISE LIVE CONTROL ---
 if st.session_state.role == "Admin":
-    st.title("👨‍🏫 Sir's Control Console")
-    a1, a2 = st.tabs(["📡 Live Control", "👥 Student Management"])
-    with a1:
-        if st.toggle("Start Live Stream", value=live_active):
-            with open("live_active.txt", "w") as f: f.write("ON")
-            webrtc_streamer(key="sir_pro", mode=WebRtcMode.SENDRECV, rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
-        else: open("live_active.txt", "w").write("OFF")
-    with a2:
-        m_app = st.text_input("Enter Student Mobile Number")
-        if st.button("APPROVE PAID ACCESS"):
-            db = load_db(); db[m_app]["paid"] = True; save_db(db); st.success(f"{m_app} is now a Premium Student!")
+    batches = load_data(BATCH_DB)
+    
+    if menu == "Create Batch":
+        st.title("Create New Batch")
+        bn = st.text_input("Batch Name")
+        bp = st.number_input("Batch Price", min_value=0)
+        bd = st.text_area("Description")
+        if st.button("Launch Batch"):
+            batches[bn] = {"price": bp, "desc": bd, "is_live": False}
+            save_data(BATCH_DB, batches); st.success(f"Batch {bn} Live!")
 
-else: # Student Classroom logic
-    if menu == "🏠 Dashboard":
-        st.markdown('<div class="app-header"><h2>DASHBOARD</h2></div>', unsafe_allow_html=True)
-        if live_active:
-            st.markdown('<div class="feature-card"><h3><span class="live-indicator">LIVE</span> Class is Running!</h3><p>Harish Sir is teaching live now. Join quickly.</p></div>', unsafe_allow_html=True)
-        st.markdown('<div class="feature-card"><h3>📅 Schedule</h3><p>Tense Part 2 - Live at 10:00 AM Tomorrow</p></div>', unsafe_allow_html=True)
+    elif menu == "🔴 Go Live":
+        st.title("Select Batch to Start Live Class")
+        if not batches: st.warning("Pehle ek batch banaiye.")
+        else:
+            for b_name in batches.keys():
+                st.markdown(f'<div class="batch-card">', unsafe_allow_html=True)
+                col1, col2 = st.columns([3, 1])
+                with col1: st.subheader(b_name)
+                with col2:
+                    # Toggle switch for Live Status
+                    if batches[b_name].get("is_live", False):
+                        if st.button("Stop Live", key=f"stop_{b_name}"):
+                            batches[b_name]["is_live"] = False
+                            save_data(BATCH_DB, batches); st.rerun()
+                    else:
+                        if st.button("Start Live", key=f"start_{b_name}"):
+                            batches[b_name]["is_live"] = True
+                            save_data(BATCH_DB, batches); st.rerun()
+                
+                # Streaming area if Live is ON
+                if batches[b_name].get("is_live", False):
+                    st.error(f"🔴 Currently Live in {b_name}")
+                    webrtc_streamer(key=f"sir_{b_name}", mode=WebRtcMode.SENDRECV, rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
+                st.markdown('</div>', unsafe_allow_html=True)
 
-    elif menu == "🔴 Live Class":
-        if is_paid:
-            if live_active: 
-                webrtc_streamer(key="stu_pro", mode=WebRtcMode.RECVONLY, rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
-            else: st.info("Class has not started. Please check the dashboard for schedule.")
-        else: st.error("🔒 Full access required. Please pay via sidebar to join live.")
+# --- 🎓 STUDENT: MY BATCHES WITH LIVE INDICATOR ---
+else:
+    batches = load_data(BATCH_DB)
+    users = load_data(USER_DB)
+    my_p = users.get(st.session_state.u_id, {}).get("purchased", [])
+
+    if menu == "🏠 Explore Batches":
+        st.title("New Batches for You")
+        for name, info in batches.items():
+            if name not in my_p:
+                st.markdown(f'<div class="batch-card">', unsafe_allow_html=True)
+                st.subheader(name)
+                st.write(f"Price: ₹{info['price']}")
+                if st.button("Check Details", key=name):
+                    upi_url = f"upi://pay?pa={SIR_UPI}&pn=Harish_Sir&am={info['price']}&cu=INR&tn=Batch_{name}_ID_{st.session_state.u_id}"
+                    qr = qrcode.make(upi_url); buf = BytesIO(); qr.save(buf, format="PNG")
+                    st.image(buf.getvalue(), caption="Scan to Pay")
+                st.markdown('</div>', unsafe_allow_html=True)
+
+    elif menu == "📚 My Batches":
+        st.title("Your Classroom")
+        if not my_p: st.info("Koi batch nahi mila.")
+        else:
+            for b_name in my_p:
+                st.markdown(f'<div class="batch-card">', unsafe_allow_html=True)
+                col1, col2 = st.columns([3, 1])
+                with col1:
+                    is_live = batches.get(b_name, {}).get("is_live", False)
+                    if is_live: st.markdown('<h3><span class="live-dot"></span>' + b_name + ' (LIVE NOW)</h3>', unsafe_allow_html=True)
+                    else: st.subheader(b_name)
+                with col2:
+                    if st.button("Enter Class", key=f"go_{b_name}"):
+                        st.session_state.watching = b_name
+                
+                if st.session_state.get("watching") == b_name:
+                    if is_live:
+                        webrtc_streamer(key=f"stu_{b_name}", mode=WebRtcMode.RECVONLY, rtc_configuration={"iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]})
+                    else: st.warning("Abhi Sir live nahi hain. Purani recording check karein.")
+                st.markdown('</div>', unsafe_allow_html=True)
